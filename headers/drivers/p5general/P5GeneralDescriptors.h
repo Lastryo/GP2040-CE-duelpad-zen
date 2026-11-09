@@ -109,6 +109,9 @@ typedef struct __attribute__((packed)) {
   uint8_t hash[8];
 } P5GenerorReport;
 
+static_assert(sizeof(P5GenerorReport) == P5GENERAL_ENDPOINT_SIZE,
+              "P5General report must fit the dongle authentication buffer");
+
 static const uint8_t p5general_string_language[]        = { 0x09, 0x04 };
 static const uint8_t p5general_string_manufacturer[]    = "Activtor";
 static const uint8_t p5general_string_product[]         = "P5General";
