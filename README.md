@@ -1,3 +1,7 @@
+# DuelPad Zen + P5General on GP2040-CE 0.7.12
+
+Experimental fork. [Build, configuration, source provenance and hardware test checklist](configs/DuelPadZen/README.md).
+
 <p align="center">
   <a href="https://gp2040-ce.info">
     <img alt="GP2040-CE" src="https://raw.githubusercontent.com/OpenStickCommunity/Site/main/docs/assets/images/gp2040-ce-logo.png" />

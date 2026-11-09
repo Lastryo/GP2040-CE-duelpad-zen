@@ -1,0 +1,27 @@
+name: DuelPad Zen P5General
+on:
+  push:
+    branches: [duelpad-zen-p5general-0.7.12]
+  pull_request:
+    branches: [duelpad-zen-p5general-0.7.12]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firmware:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build toolchain container
+        run: docker build -f tools/Dockerfile.duelpad -t duelpad-zen-build:0.7.12 .
+      - name: Build firmware and web configurator
+        run: docker run --rm -v "$PWD:/src" duelpad-zen-build:0.7.12 ./scripts/build-duelpad.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DuelPadZen-P5General-0.7.12
+          path: |
+            build-duelpad/GP2040-CE_*_DuelPadZen.uf2
+            build-duelpad/GP2040-CE_*_DuelPadZen.elf
+          if-no-files-found: error
