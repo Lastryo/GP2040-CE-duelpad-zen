@@ -66,6 +66,10 @@ GitHub Actions workflow **DuelPad Zen P5General** runs the same container build.
    Use a Besavior dongle firmware compatible with GP2040-CE; record its version.
    Do not downgrade a newer dongle blindly to an old firmware mentioned in a guide.
 
+## Validation
+
+See [VALIDATION.md](VALIDATION.md) for completed local checks and limitations.
+
 ## Hardware acceptance checklist — pending
 
 Compilation is not proof of console authentication or a 1000 Hz effective rate.
