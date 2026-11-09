@@ -128,8 +128,8 @@ static const uint8_t p5general_device_descriptor[] =
     0x01,        // bDescriptorType (Device)
     0x00, 0x02,  // bcdUSB 2.00
     0x00,        // bDeviceClass (Use class information in the Interface Descriptors)
-    0x00,        // bDeviceSubClass 
-    0x00,        // bDeviceProtocol 
+    0x00,        // bDeviceSubClass
+    0x00,        // bDeviceProtocol
     0x40,        // bMaxPacketSize0 64
     0x81, 0x2B,  // idVendor 0x2B81
     0x01, 0x01,  // idProduct 0x0101

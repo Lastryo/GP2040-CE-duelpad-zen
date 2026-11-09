@@ -83,7 +83,7 @@ bool P5GeneralAuthUSBListener::host_set_report(uint8_t report_id, void* report, 
 
 void P5GeneralAuthUSBListener::mount(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_report, uint16_t desc_len) {
     P5LRPINTF("P5L:Try Mount\n");
-    
+
     if ( p5GeneralAuthData->dongle_ready == true ) {
         return;
     }
@@ -162,11 +162,11 @@ void P5GeneralAuthUSBListener::set_report_complete(uint8_t dev_addr, uint8_t ins
 
 void P5GeneralAuthUSBListener::get_report_complete(uint8_t dev_addr, uint8_t instance, uint8_t report_id, uint8_t report_type, uint16_t len) {
     P5LRPINTF("P5L:get_report_complete report_id %d len %d\n", report_id, len);
-    if ( p5GeneralAuthData->dongle_ready == false || 
+    if ( p5GeneralAuthData->dongle_ready == false ||
         (dev_addr != ps_dev_addr) || (instance != ps_instance) ) {
         return;
     }
-    
+
     switch(report_id) {
         case P5GeneralAuthReport::P5GENERAL_GET_SIGNATURE_NONCE:
             if (p5GeneralAuthData->passthrough_state == P5GeneralGPAuthState::p5g_auth_recv_f1_wait) {

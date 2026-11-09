@@ -439,7 +439,7 @@ GP2040::BootAction GP2040::getBootAction() {
                                     return BootAction::SET_INPUT_MODE_PS4;
                                 case INPUT_MODE_PS5:
                                     return BootAction::SET_INPUT_MODE_PS5;
-                                case INPUT_MODE_P5GENERAL: 
+                                case INPUT_MODE_P5GENERAL:
                                     return BootAction::SET_INPUT_MODE_P5GENERAL;
                                 case INPUT_MODE_NEOGEO:
                                     return BootAction::SET_INPUT_MODE_NEOGEO;

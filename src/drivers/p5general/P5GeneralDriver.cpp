@@ -44,7 +44,7 @@ void P5GeneralDriver::initialize() {
     gamepad->auxState.sensors.touchpad[0].y = P5GENERAL_TP_Y_MAX/2;
     gamepad->auxState.sensors.touchpad[1].x = P5GENERAL_TP_X_MAX/2;
     gamepad->auxState.sensors.touchpad[1].y = P5GENERAL_TP_Y_MAX/2;
-    
+
     touchCounter = 0;
     diff_report_repeat = 0;
 
@@ -108,7 +108,7 @@ bool P5GeneralDriver::process(Gamepad * gamepad) {
     if (!p5GeneralAuthData || !p5GeneralAuthData->dongle_ready) {
         return false;
     }
-    
+
     if (tud_suspended()) {
         tud_remote_wakeup();
     }
@@ -184,7 +184,7 @@ bool P5GeneralDriver::process(Gamepad * gamepad) {
     // if the touchpad is pressed (note A2 vs. S1 choice above), emulate one finger of the touchpad
     touchpadData.p1.unpressed = p5GeneralReport.button_touchpad ? 0 : 1;
     if (p5GeneralReport.button_touchpad) {
-        // make the assumption that since touchpad button is already being pressed, 
+        // make the assumption that since touchpad button is already being pressed,
         // the first touch position is in use and no other "touches" will be present
         if (gamepad->pressedA3()) {
             touchpadData.p1.set_x(P5GENERAL_TP_X_MIN);
@@ -199,7 +199,7 @@ bool P5GeneralDriver::process(Gamepad * gamepad) {
             touchpadData.p1.unpressed = !gamepad->auxState.sensors.touchpad[0].active;
             touchpadData.p1.set_x(gamepad->auxState.sensors.touchpad[0].x);
             touchpadData.p1.set_y(gamepad->auxState.sensors.touchpad[0].y);
-            
+
             if (gamepad->auxState.sensors.touchpad[1].enabled) {
                 touchpadData.p2.unpressed = !gamepad->auxState.sensors.touchpad[1].active;
                 touchpadData.p2.set_x(gamepad->auxState.sensors.touchpad[1].x);
@@ -219,9 +219,9 @@ bool P5GeneralDriver::process(Gamepad * gamepad) {
     }
     if (!pointTwoTouched && !touchpadData.p2.unpressed) {
         touchCounter = (touchCounter < P5GENERAL_TP_MAX_COUNT ? touchCounter+1 : 0);
-    
+
         touchpadData.p2.counter = touchCounter;
-    
+
         pointTwoTouched = true;
     } else if (pointTwoTouched && touchpadData.p2.unpressed) {
         pointTwoTouched = false;
