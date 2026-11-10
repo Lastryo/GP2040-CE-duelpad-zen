@@ -98,3 +98,11 @@ GP13 to Menu Down, GP8 to Menu Left, GP12 to Menu Right, and GP14 to Menu Select
 Save and reboot into controller mode. Pressing the stick opens the menu.
 Factory E1–E5 assignments do not control the upstream menu. Apply these changes
 to the active profile; do not reset all settings just to fix menu navigation.
+
+## Diagnostic LED timing build
+
+The Zen build uses the vendor 2/5/3-cycle WS2812 timing at 800 kHz, rather
+than upstream 3/3/4. Other boards retain upstream timing. This is a diagnostic
+change for rapid random-colour flicker, including static colour with no dongle.
+Hardware confirmation is pending. Keep GPIO15, GRB, and two LEDs per button;
+record the current configuration before changing settings.

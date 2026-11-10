@@ -5,7 +5,13 @@ target_include_directories(NeoPico PUBLIC
  src
  )
 
-pico_generate_pio_header(NeoPico ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/src/generated)
+set(NEOPICO_PIO_SOURCE ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
+if(GP2040_BOARDCONFIG STREQUAL "DuelPadZen")
+    # Match the vendor signal timing for the Zen LED hardware.
+    set(NEOPICO_PIO_SOURCE ${CMAKE_SOURCE_DIR}/configs/DuelPadZen/ws2812.pio)
+endif()
+pico_generate_pio_header(NeoPico ${NEOPICO_PIO_SOURCE} OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_include_directories(NeoPico PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 target_link_libraries(NeoPico PUBLIC
 pico_stdlib
