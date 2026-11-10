@@ -24,3 +24,10 @@ GitHub Actions has not run yet. No firmware has been flashed. USB Host enumerati
 on the physical controller, display/input timing, actual polling rate, PS5
 version compatibility and all console acceptance checks remain pending. See the
 hardware checklist in README.md before treating this as a tested console release.
+
+## Menu wiring correction
+
+Vendor BoardConfig.h identifies GP14 as stick press (E3) and GP12 as right
+(E5). The restored upstream configuration had these swapped. Corrected to
+GP14 = MENU_NAVIGATION_SELECT and GP12 = MENU_NAVIGATION_RIGHT. Saved factory
+GPIO assignments still require manual migration in Web Config.

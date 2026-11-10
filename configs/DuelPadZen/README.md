@@ -23,7 +23,7 @@ https://github.com/duelpadarcade/Duelpad-Zen.
 - RP2040; USB Host D+ = GP22, D- = GP23, normal pin order.
 - OLED: I2C0, SDA = GP20, SCL = GP21. Display remains enabled.
 - RGB data = GP15, two LEDs per pixel; restored upstream Zen LED map.
-- Navigation stick: up GP17, down GP13, left GP8, right GP14, select GP12.
+- Navigation stick: up GP17, down GP13, left GP8, right GP12, select GP14.
 - Hold B4 (Triangle/Y in the gameplay layout) while connecting to select
   P5General. B3 selects XInput. Existing saved boot mappings may override defaults.
 - This does not force P5General on every boot; it remains selectable in web config.
@@ -90,3 +90,11 @@ If display activity still affects input, first collect timing and reproducible
 steps. Disabling I2C0 is a diagnostic fallback and removes the OLED/menu; it is
 not claimed as a required or verified fix in this build. Rumble is not supported
 by the imported P5General implementation.
+
+## Correcting saved factory menu mappings
+
+UF2 updates retain saved GPIO assignments. In Web Config, set GP17 to Menu Up,
+GP13 to Menu Down, GP8 to Menu Left, GP12 to Menu Right, and GP14 to Menu Select.
+Save and reboot into controller mode. Pressing the stick opens the menu.
+Factory E1–E5 assignments do not control the upstream menu. Apply these changes
+to the active profile; do not reset all settings just to fix menu navigation.
