@@ -218,6 +218,7 @@ src/display/ui/elements/GPLabel.cpp
 src/display/ui/elements/GPMenu.cpp
 src/display/ui/elements/GPScreen.cpp
 src/display/ui/elements/GPShape.cpp
+src/display/ui/elements/GPText.cpp
 src/display/ui/elements/GPSprite.cpp
 src/display/ui/screens/ButtonLayoutScreen.cpp
 src/display/ui/screens/ConfigScreen.cpp

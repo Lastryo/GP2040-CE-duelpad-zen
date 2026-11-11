@@ -35,11 +35,18 @@ export default {
 	'confirm-clear': 'Remove all elements?',
 	'icon-too-small':
 		'Icons are drawn only in shapes with a radius (or half size) of at least 4 px.',
+	'text-hint':
+		'Up to 16 characters, Latin letters, digits and symbols only. The small 3x5 font shows letters in uppercase. On buttons the 5x7 font is used when the text fits inside, otherwise the 3x5 font.',
+	fonts: {
+		tiny: 'Small 3x5',
+		standard: 'Regular 5x7',
+	},
 	types: {
 		2: 'Button',
 		3: 'D-Pad',
 		4: 'GPIO Pin',
 		5: 'Lever',
+		6: 'Text',
 		7: 'Sprite',
 		8: 'Shape',
 	},
@@ -54,6 +61,7 @@ export default {
 	icons: {
 		auto: 'Automatic (by input mode)',
 		hidden: 'None',
+		text: 'Text',
 		cross: 'Cross ✕',
 		circle: 'Circle ○',
 		square: 'Square □',
@@ -84,5 +92,9 @@ export default {
 		outline: 'Outline',
 		filled: 'Filled',
 		closed: 'Closed',
+		text: 'Text',
+		font: 'Font',
+		'white-text': 'White text',
+		background: 'Solid background',
 	},
 };

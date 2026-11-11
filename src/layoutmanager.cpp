@@ -729,6 +729,7 @@ LayoutManager::LayoutList LayoutManager::drawUserDefined()
         element.parameters.angleEnd = e.angleEnd;
         element.parameters.closed = e.closed;
         element.parameters.icon = e.icon;
+        element.parameters.text = e.text;
         layout.push_back(element);
     }
     return layout;

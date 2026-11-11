@@ -336,10 +336,23 @@ GPWidget* ButtonLayoutScreen::pushElement(GPButtonLayout element) {
         button->setAngleEnd(element.parameters.angleEnd);
         button->setClosed(element.parameters.closed);
         button->setIcon(element.parameters.icon);
+        button->setText(element.parameters.text);
 
         if (element.elementType == GP_ELEMENT_DIR_BUTTON) button->setInputDirection(true);
 
         return (GPWidget*)button;
+    } else if (element.elementType == GP_ELEMENT_LABEL) {
+        // free text from the layout editor: value = font, stroke = colour, fill = solid background
+        GPText* text = new GPText();
+        text->setRenderer(getRenderer());
+        text->setPosition(element.parameters.x1, element.parameters.y1);
+        text->setStrokeColor(element.parameters.stroke);
+        text->setFillColor(element.parameters.fill);
+        text->setViewport(this->getViewport());
+        text->setText(element.parameters.text);
+        text->setFont(element.parameters.value == GP_TEXT_FONT_STANDARD ? GP_TEXT_FONT_STANDARD : GP_TEXT_FONT_TINY);
+        text->setBackground(element.parameters.fill != 0);
+        return addElement(text);
     } else if (element.elementType == GP_ELEMENT_SPRITE) {
         return addSprite(element.parameters.x1, element.parameters.y1, element.parameters.x2, element.parameters.y2);
     } else if (element.elementType == GP_ELEMENT_SHAPE) {

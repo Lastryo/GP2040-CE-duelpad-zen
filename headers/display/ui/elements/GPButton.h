@@ -1,6 +1,7 @@
 #ifndef _GPBUTTON_H_
 #define _GPBUTTON_H_
 
+#include <string>
 #include "GPWidget.h"
 #include "enums.pb.h"
 
@@ -18,6 +19,7 @@ class GPButton : public GPWidget {
         GPButton* setClosed(bool closed) { this->_closed = closed; return this; }
         GPButton* setShape(GPShape_Type shape) { this->_shape = shape; return this; }
         GPButton* setIcon(uint16_t icon) { this->_icon = icon; return this; }
+        GPButton* setText(const char* text) { this->_text = text ? text : ""; return this; }
     private:
         uint16_t _sizeX = 0;
         uint16_t _sizeY = 0;
@@ -28,7 +30,8 @@ class GPButton : public GPWidget {
         bool _inputDirection = false;
         GPElement _inputType = GP_ELEMENT_BTN_BUTTON;
         GPShape_Type _shape = GP_SHAPE_ELLIPSE;
-        uint16_t _icon = 0; // 0 = automatic, 255 = hidden, otherwise GPButtonIcon id
+        uint16_t _icon = 0; // 0 = automatic, 254 = text, 255 = hidden, otherwise GPButtonIcon id
+        std::string _text;  // drawn when _icon == GP_BUTTON_ICON_TEXT
 };
 
 #endif

@@ -8,6 +8,7 @@
 // One byte per row, bit 4 is the leftmost pixel.
 #define GP_BUTTON_ICON_SIZE 5
 #define GP_BUTTON_ICON_AUTO 0
+#define GP_BUTTON_ICON_TEXT 254
 #define GP_BUTTON_ICON_HIDDEN 255
 
 typedef enum {

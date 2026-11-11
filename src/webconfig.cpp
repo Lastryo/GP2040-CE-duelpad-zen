@@ -928,15 +928,17 @@ std::string getButtonLayoutDefs()
 
 // Display layout editor
 // Elements are sent as compact arrays to stay well inside the 16k POST/JSON buffers:
-// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon]
+// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon, text]
+// (text is optional when reading, so files from the first editor version still load)
 #define DISPLAY_LAYOUT_ELEMENT_FIELDS 13
+#define DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT 14
 #define DISPLAY_LAYOUT_MAX_ELEMENTS (sizeof(DisplayOptions::userLayoutElements) / sizeof(DisplayOptions::userLayoutElements[0]))
 
 std::string getDisplayLayout()
 {
     const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
     const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_ARRAY_SIZE(DISPLAY_LAYOUT_MAX_ELEMENTS)
-        + DISPLAY_LAYOUT_MAX_ELEMENTS * JSON_ARRAY_SIZE(DISPLAY_LAYOUT_ELEMENT_FIELDS) + 256;
+        + DISPLAY_LAYOUT_MAX_ELEMENTS * JSON_ARRAY_SIZE(DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT) + 256;
     DynamicJsonDocument doc(capacity);
 
     doc["active"] = (displayOptions.buttonLayout == BUTTON_LAYOUT_USER_DEFINED_A);
@@ -949,6 +951,7 @@ std::string getDisplayLayout()
         item.add(e.x1); item.add(e.y1); item.add(e.x2); item.add(e.y2);
         item.add(e.stroke); item.add(e.fill); item.add(e.value); item.add(e.shape);
         item.add(e.angleStart); item.add(e.angleEnd); item.add(e.closed); item.add(e.icon);
+        item.add((const char*)e.text);
     }
     return serialize_json(doc);
 }
@@ -967,7 +970,7 @@ std::string setDisplayLayout()
             if (item.size() < DISPLAY_LAYOUT_ELEMENT_FIELDS) continue;
             uint32_t type = item[0] | 0u;
             // only drawable element types are accepted
-            if (type < GP_ELEMENT_BTN_BUTTON || type > GP_ELEMENT_SHAPE || type == GP_ELEMENT_LABEL) continue;
+            if (type < GP_ELEMENT_BTN_BUTTON || type > GP_ELEMENT_SHAPE) continue;
 
             DisplayLayoutElement& e = displayOptions.userLayoutElements[count];
             e = DisplayLayoutElement_init_zero;
@@ -984,6 +987,14 @@ std::string setDisplayLayout()
             e.has_angleEnd = true;   e.angleEnd = item[10] | 0u;
             e.has_closed = true;     e.closed = item[11] | 0u;
             e.has_icon = true;       e.icon = item[12] | 0u;
+            // printable ASCII only, the display fonts have nothing else
+            const char* text = item[13] | "";
+            size_t len = 0;
+            for (const char* c = text; *c && len < sizeof(e.text) - 1; c++) {
+                if (*c >= 0x20 && *c <= 0x7e) e.text[len++] = *c;
+            }
+            e.text[len] = '\0';
+            e.has_text = true;
             count++;
         }
         displayOptions.userLayoutElements_count = count;

@@ -6,6 +6,7 @@ import { GpioAction, GPElement, GPShape_Type, InputMode } from '@proto/enums';
 import { AppContext } from '../Contexts/AppContext';
 import Section from '../Components/Section';
 import WebApi from '../Services/WebApi';
+import { STANDARD_FONT, TINY_FONT } from '../Data/DisplayFonts';
 import './DisplayLayoutEditorPage.scss';
 
 const SCREEN_WIDTH = 128;
@@ -15,6 +16,7 @@ const FILE_VERSION = 1;
 
 // Must match headers/display/ui/elements/GPButtonIcons.h
 const ICON_AUTO = 0;
+const ICON_TEXT = 254;
 const ICON_HIDDEN = 255;
 const ICONS = [
 	{ id: 1, key: 'cross', glyph: [0x11, 0x0a, 0x04, 0x0a, 0x11] },
@@ -105,6 +107,7 @@ const EDITABLE_TYPES = [
 	GPElement.GP_ELEMENT_DIR_BUTTON,
 	GPElement.GP_ELEMENT_LEVER,
 	GPElement.GP_ELEMENT_SHAPE,
+	GPElement.GP_ELEMENT_LABEL,
 ];
 const BUTTON_TYPES = [
 	GPElement.GP_ELEMENT_PIN_BUTTON,
@@ -136,15 +139,52 @@ const FIELDS = [
 	'icon',
 ];
 
+// --- text (must match headers/display/ui/elements/GPTextRender.h) ---------
+const TEXT_MAX_LENGTH = 16;
+const FONT_TINY = 0;
+const FONT_STANDARD = 1;
+const sanitizeText = (text) =>
+	String(text ?? '')
+		.replace(/[^\x20-\x7e]/g, '')
+		.slice(0, TEXT_MAX_LENGTH);
+const textAdvance = (font) => (font === FONT_STANDARD ? 6 : 4);
+const textHeight = (font) => (font === FONT_STANDARD ? 7 : 5);
+const textWidth = (text, font) => (text.length ? text.length * textAdvance(font) - 1 : 0);
+const textPixels = (text, font) => {
+	const pixels = [];
+	[...text].forEach((ch, i) => {
+		let code = ch.charCodeAt(0);
+		const ox = i * textAdvance(font);
+		if (font === FONT_STANDARD) {
+			if (code < 32 || code - 32 >= STANDARD_FONT.length / 5) code = 63;
+			for (let col = 0; col < 5; col++) {
+				const bits = STANDARD_FONT[(code - 32) * 5 + col];
+				for (let row = 0; row < 7; row++) if ((bits >> row) & 1) pixels.push([ox + col, row]);
+			}
+		} else {
+			if (code >= 97 && code <= 122) code -= 32;
+			if (code < 32 || code >= 32 + TINY_FONT.length) code = 63;
+			const glyph = TINY_FONT[code - 32];
+			for (let row = 0; row < 5; row++) {
+				const bits = (glyph >> ((4 - row) * 3)) & 7;
+				for (let col = 0; col < 3; col++) if (bits & (4 >> col)) pixels.push([ox + col, row]);
+			}
+		}
+	});
+	return pixels;
+};
+
 const toInt = (v, min = 0, max = 65535) => {
 	const n = parseInt(v, 10);
 	if (Number.isNaN(n)) return min;
 	return Math.min(max, Math.max(min, n));
 };
 
-const fromArray = (arr) =>
-	Object.fromEntries(FIELDS.map((field, i) => [field, toInt(arr?.[i] ?? 0)]));
-const toArray = (el) => FIELDS.map((field) => toInt(el[field]));
+const fromArray = (arr) => ({
+	...Object.fromEntries(FIELDS.map((field, i) => [field, toInt(arr?.[i] ?? 0)])),
+	text: sanitizeText(arr?.[FIELDS.length]),
+});
+const toArray = (el) => [...FIELDS.map((field) => toInt(el[field])), sanitizeText(el.text)];
 
 const fromLayoutElement = (item) => ({
 	type: toInt(item.elementType),
@@ -160,9 +200,11 @@ const fromLayoutElement = (item) => ({
 	angleEnd: toInt(item.parameters?.angleEnd),
 	closed: toInt(item.parameters?.closed),
 	icon: ICON_AUTO,
+	text: '',
 });
 
 const isLever = (el) => el.type === GPElement.GP_ELEMENT_LEVER;
+const isLabel = (el) => el.type === GPElement.GP_ELEMENT_LABEL;
 const isButton = (el) => BUTTON_TYPES.includes(el.type);
 // centred elements use x1/y1 as centre and x2 as radius; the others use x1/y1 -> x2/y2
 const isCentered = (el) =>
@@ -173,15 +215,17 @@ const isCentered = (el) =>
 		GPShape_Type.GP_SHAPE_ARC,
 	].includes(el.shape);
 
+const movesByOrigin = (el) => isCentered(el) || isLabel(el);
 const moveElement = (el, dx, dy) => {
-	const minX = isCentered(el) ? el.x1 : Math.min(el.x1, el.x2);
-	const minY = isCentered(el) ? el.y1 : Math.min(el.y1, el.y2);
-	const maxX = isCentered(el) ? el.x1 : Math.max(el.x1, el.x2);
-	const maxY = isCentered(el) ? el.y1 : Math.max(el.y1, el.y2);
+	const single = movesByOrigin(el);
+	const minX = single ? el.x1 : Math.min(el.x1, el.x2);
+	const minY = single ? el.y1 : Math.min(el.y1, el.y2);
+	const maxX = single ? el.x1 : Math.max(el.x1, el.x2);
+	const maxY = single ? el.y1 : Math.max(el.y1, el.y2);
 	const mx = Math.min(MAX_COORD - maxX, Math.max(-minX, dx));
 	const my = Math.min(MAX_COORD - maxY, Math.max(-minY, dy));
 	const next = { ...el, x1: el.x1 + mx, y1: el.y1 + my };
-	if (!isCentered(el)) {
+	if (!single) {
 		next.x2 = el.x2 + mx;
 		next.y2 = el.y2 + my;
 	}
@@ -193,18 +237,26 @@ const iconPlacement = (el) => {
 	if (isCentered(el)) {
 		if (el.shape === GPShape_Type.GP_SHAPE_ARC) return null;
 		if (el.shape === GPShape_Type.GP_SHAPE_POLYGON && el.y2 < 6) return null;
-		return { cx: el.x1, cy: el.y1, room: el.x2 };
+		return { cx: el.x1, cy: el.y1, room: el.x2, availW: 2 * el.x2 - 1, availH: 2 * el.x2 - 1 };
 	}
 	if (el.shape === GPShape_Type.GP_SHAPE_LINE || el.angleStart !== 0) return null;
 	return {
 		cx: Math.floor((el.x1 + el.x2) / 2),
 		cy: Math.floor((el.y1 + el.y2) / 2),
 		room: Math.floor(Math.min(el.x2 - el.x1, el.y2 - el.y1) / 2),
+		availW: el.x2 - el.x1 - 1,
+		availH: el.y2 - el.y1 - 1,
 	};
 };
 
+// font GPButton::draw() picks for button text
+const buttonTextFont = (el, place) =>
+	textWidth(el.text, FONT_STANDARD) <= place.availW && textHeight(FONT_STANDARD) <= place.availH
+		? FONT_STANDARD
+		: FONT_TINY;
+
 const resolveIcon = (el, { buttonIcons, inputMode, pinActions }) => {
-	if (!isButton(el) || el.icon === ICON_HIDDEN) return null;
+	if (!isButton(el) || el.icon === ICON_HIDDEN || el.icon === ICON_TEXT) return null;
 	if (el.icon !== ICON_AUTO) return ICON_BY_ID[el.icon] || null;
 	if (!buttonIcons) return null;
 	let faceIndex = -1;
@@ -341,6 +393,43 @@ const IconPixels = ({ icon, cx, cy, color }) => (
 		)}
 	</g>
 );
+
+const TextPixels = ({ text, font, x, y, color }) => (
+	<g pointerEvents="none">
+		{textPixels(text, font).map(([px, py]) => (
+			<rect key={`${px}-${py}`} x={x + px} y={y + py} width={1} height={1} fill={color} />
+		))}
+	</g>
+);
+
+const LabelElement = ({ el, color }) => {
+	const font = el.value === FONT_STANDARD ? FONT_STANDARD : FONT_TINY;
+	const w = Math.max(textWidth(el.text, font), 3);
+	const h = textHeight(font);
+	const ink = el.stroke ? color : '#000';
+	return (
+		<g>
+			{/* hit area, also shows the solid background when enabled */}
+			<rect
+				x={el.x1 - 1}
+				y={el.y1 - 1}
+				width={w + 2}
+				height={h + 2}
+				fill={el.fill ? ink : 'transparent'}
+				stroke={el.stroke ? 'none' : '#555'}
+				strokeWidth={0.3}
+				pointerEvents="all"
+			/>
+			<TextPixels
+				text={el.text}
+				font={font}
+				x={el.x1}
+				y={el.y1}
+				color={el.fill ? (el.stroke ? '#000' : color) : ink}
+			/>
+		</g>
+	);
+};
 
 const downloadJson = (data, filename) => {
 	const blob = new Blob([JSON.stringify(data, null, 1)], {
@@ -518,7 +607,11 @@ export default function DisplayLayoutEditorPage() {
 			angleEnd: 0,
 			closed: 0,
 			icon: ICON_AUTO,
+			text: '',
 		};
+		if (type === GPElement.GP_ELEMENT_LABEL) {
+			Object.assign(base, { x1: 4, y1: 4, value: FONT_TINY, text: 'TEXT' });
+		}
 		if (type === GPElement.GP_ELEMENT_BTN_BUTTON) base.value = 1;
 		if (type === GPElement.GP_ELEMENT_DIR_BUTTON) base.value = 1;
 		if (type === GPElement.GP_ELEMENT_LEVER) base.x2 = 8;
@@ -645,6 +738,7 @@ export default function DisplayLayoutEditorPage() {
 		if (el.type === GPElement.GP_ELEMENT_SHAPE) {
 			return `${type}: ${t(`DisplayLayoutEditor:shapes.${el.shape}`)}`;
 		}
+		if (isLabel(el)) return `${type}: "${el.text}"`;
 		return type;
 	};
 
@@ -663,6 +757,12 @@ export default function DisplayLayoutEditorPage() {
 	);
 
 	const geometryFields = (el) => {
+		if (isLabel(el)) {
+			return [
+				numberField('x1', t('DisplayLayoutEditor:fields.left')),
+				numberField('y1', t('DisplayLayoutEditor:fields.top')),
+			];
+		}
 		if (isCentered(el)) {
 			const fields = [
 				numberField('x1', t('DisplayLayoutEditor:fields.center-x')),
@@ -695,6 +795,19 @@ export default function DisplayLayoutEditorPage() {
 			numberField('angleStart', t('DisplayLayoutEditor:fields.rotation-degrees'), 359),
 		];
 	};
+
+	const textField = (el, md = 6) => (
+		<Form.Group as={Col} xs={12} md={md} className="mb-2">
+			<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.text')}</Form.Label>
+			<Form.Control
+				size="sm"
+				type="text"
+				maxLength={TEXT_MAX_LENGTH}
+				value={el.text}
+				onChange={(e) => updateSelected({ text: sanitizeText(e.target.value) })}
+			/>
+		</Form.Group>
+	);
 
 	const valueField = (el) => {
 		const select = (options) => (
@@ -736,6 +849,23 @@ export default function DisplayLayoutEditorPage() {
 				);
 			case GPElement.GP_ELEMENT_LEVER:
 				return numberField('value', t('DisplayLayoutEditor:fields.lever-mode'), 255);
+			case GPElement.GP_ELEMENT_LABEL:
+				return (
+					<>
+						{textField(el)}
+						<Form.Group as={Col} xs={12} md={6} className="mb-2">
+							<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.font')}</Form.Label>
+							<Form.Select
+								size="sm"
+								value={el.value === FONT_STANDARD ? FONT_STANDARD : FONT_TINY}
+								onChange={(e) => updateSelected({ value: toInt(e.target.value) })}
+							>
+								<option value={FONT_TINY}>{t('DisplayLayoutEditor:fonts.tiny')}</option>
+								<option value={FONT_STANDARD}>{t('DisplayLayoutEditor:fonts.standard')}</option>
+							</Form.Select>
+						</Form.Group>
+					</>
+				);
 			default:
 				return null;
 		}
@@ -791,8 +921,22 @@ export default function DisplayLayoutEditorPage() {
 								const color = isSelected ? '#4fc3f7' : '#fff';
 								const filled =
 									pressed || (el.type === GPElement.GP_ELEMENT_SHAPE && el.fill > 0);
+								if (isLabel(el)) {
+									return (
+										<g
+											key={index}
+											className="dle-element"
+											onPointerDown={(e) => onElementPointerDown(e, index)}
+										>
+											<LabelElement el={el} color={color} />
+										</g>
+									);
+								}
 								const icon = resolveIcon(el, iconContext);
 								const place = icon ? iconPlacement(el) : null;
+								const textPlace =
+									isButton(el) && el.icon === ICON_TEXT && el.text ? iconPlacement(el) : null;
+								const textFont = textPlace ? buttonTextFont(el, textPlace) : FONT_TINY;
 								return (
 									<g
 										key={index}
@@ -807,6 +951,15 @@ export default function DisplayLayoutEditorPage() {
 												icon={icon}
 												cx={place.cx}
 												cy={place.cy}
+												color={pressed ? '#000' : color}
+											/>
+										)}
+										{textPlace && (
+											<TextPixels
+												text={el.text}
+												font={textFont}
+												x={textPlace.cx - Math.floor(textWidth(el.text, textFont) / 2)}
+												y={textPlace.cy - Math.floor(textHeight(textFont) / 2)}
 												color={pressed ? '#000' : color}
 											/>
 										)}
@@ -869,6 +1022,9 @@ export default function DisplayLayoutEditorPage() {
 											const patch = { type };
 											if (type === GPElement.GP_ELEMENT_BTN_BUTTON || type === GPElement.GP_ELEMENT_DIR_BUTTON) patch.value = 1;
 											if (type === GPElement.GP_ELEMENT_PIN_BUTTON || type === GPElement.GP_ELEMENT_LEVER) patch.value = 0;
+											if (type === GPElement.GP_ELEMENT_LABEL) {
+												Object.assign(patch, { value: FONT_TINY, stroke: 1, fill: 0, text: selectedEl.text || 'TEXT' });
+											}
 											updateSelected(patch);
 										}}
 									>
@@ -879,7 +1035,7 @@ export default function DisplayLayoutEditorPage() {
 										))}
 									</Form.Select>
 								</Form.Group>
-								{!isLever(selectedEl) && (
+								{!isLever(selectedEl) && !isLabel(selectedEl) && (
 									<Form.Group as={Col} xs={12} md={6} className="mb-2">
 										<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.shape')}</Form.Label>
 										<Form.Select
@@ -931,6 +1087,7 @@ export default function DisplayLayoutEditorPage() {
 										>
 											<option value={ICON_AUTO}>{t('DisplayLayoutEditor:icons.auto')}</option>
 											<option value={ICON_HIDDEN}>{t('DisplayLayoutEditor:icons.hidden')}</option>
+											<option value={ICON_TEXT}>{t('DisplayLayoutEditor:icons.text')}</option>
 											{ICONS.map((icon) => (
 												<option key={icon.id} value={icon.id}>
 													{t(`DisplayLayoutEditor:icons.${icon.key}`, { defaultValue: icon.key })}
@@ -939,21 +1096,30 @@ export default function DisplayLayoutEditorPage() {
 										</Form.Select>
 									</Form.Group>
 								)}
+								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && textField(selectedEl)}
 							</Row>
 							<Row>{geometryFields(selectedEl)}</Row>
 							<div className="d-flex flex-wrap gap-3 small">
 								<Form.Check
 									type="switch"
 									id="dle-stroke"
-									label={t('DisplayLayoutEditor:fields.outline')}
+									label={
+										isLabel(selectedEl)
+											? t('DisplayLayoutEditor:fields.white-text')
+											: t('DisplayLayoutEditor:fields.outline')
+									}
 									checked={selectedEl.stroke > 0}
 									onChange={(e) => updateSelected({ stroke: e.target.checked ? 1 : 0 })}
 								/>
-								{selectedEl.type === GPElement.GP_ELEMENT_SHAPE && (
+								{(selectedEl.type === GPElement.GP_ELEMENT_SHAPE || isLabel(selectedEl)) && (
 									<Form.Check
 										type="switch"
 										id="dle-fill"
-										label={t('DisplayLayoutEditor:fields.filled')}
+										label={
+											isLabel(selectedEl)
+												? t('DisplayLayoutEditor:fields.background')
+												: t('DisplayLayoutEditor:fields.filled')
+										}
 										checked={selectedEl.fill > 0}
 										onChange={(e) => updateSelected({ fill: e.target.checked ? 1 : 0 })}
 									/>
@@ -968,8 +1134,11 @@ export default function DisplayLayoutEditorPage() {
 									/>
 								)}
 							</div>
-							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && (
+							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && selectedEl.icon !== ICON_TEXT && (
 								<p className="small text-warning mt-2 mb-0">{t('DisplayLayoutEditor:icon-too-small')}</p>
+							)}
+							{((isButton(selectedEl) && selectedEl.icon === ICON_TEXT) || isLabel(selectedEl)) && (
+								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:text-hint')}</p>
 							)}
 						</div>
 					)}

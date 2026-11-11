@@ -243,8 +243,10 @@ message DisplayLayoutElement
     optional uint32 angleStart = 10;
     optional uint32 angleEnd = 11;
     optional uint32 closed = 12;
-    // 0 = automatic (by input mode), 255 = hidden, otherwise a GPButtonIcon id
+    // 0 = automatic (by input mode), 254 = text, 255 = hidden, otherwise a GPButtonIcon id
     optional uint32 icon = 13;
+    // label text (GP_ELEMENT_LABEL) or button text when icon == 254
+    optional string text = 14 [(nanopb).max_size = 17];
 }
 
 message DisplayOptions

@@ -1,6 +1,7 @@
 #include "GPButton.h"
 #include "GPGFX_UI_layouts.h"
 #include "GPButtonIcons.h"
+#include "GPTextRender.h"
 
 #include <algorithm>
 
@@ -156,6 +157,9 @@ void GPButton::draw() {
     int32_t iconCenterX = -1;
     int32_t iconCenterY = -1;
     int32_t iconRoom = 0;
+    // inner area available for text
+    int32_t textAvailW = 0;
+    int32_t textAvailH = 0;
 
     // base
     if (this->_shape == GP_SHAPE_ELLIPSE) {
@@ -168,6 +172,7 @@ void GPButton::draw() {
         iconCenterX = baseX;
         iconCenterY = baseY;
         iconRoom = baseRadius;
+        textAvailW = textAvailH = 2 * (int32_t)baseRadius - 1;
     } else if (this->_shape == GP_SHAPE_SQUARE) {
         uint16_t sizeX = (this->_sizeX) * scaleX + this->getViewport().left;
         uint16_t sizeY = (this->_sizeY) * scaleY + this->getViewport().top;
@@ -184,6 +189,8 @@ void GPButton::draw() {
             iconCenterX = ((int32_t)baseX + (int32_t)(sizeX + offsetX)) / 2;
             iconCenterY = ((int32_t)baseY + (int32_t)sizeY) / 2;
             iconRoom = std::min((int32_t)(sizeX + offsetX) - (int32_t)baseX, (int32_t)sizeY - (int32_t)baseY) / 2;
+            textAvailW = (int32_t)(sizeX + offsetX) - (int32_t)baseX - 1;
+            textAvailH = (int32_t)sizeY - (int32_t)baseY - 1;
         }
     } else if (this->_shape == GP_SHAPE_LINE) {
         getRenderer()->drawLine(baseX, baseY, this->_sizeX, this->_sizeY, this->strokeColor, 0);
@@ -198,6 +205,7 @@ void GPButton::draw() {
             iconCenterX = baseX;
             iconCenterY = baseY;
             iconRoom = baseRadius;
+            textAvailW = textAvailH = 2 * (int32_t)baseRadius - 1;
         }
     } else if (this->_shape == GP_SHAPE_ARC) {
         uint16_t scaledSize = (uint16_t)((double)this->_sizeX * scaleX);
@@ -222,7 +230,24 @@ void GPButton::draw() {
             iconCenterX = ((int32_t)baseX + (int32_t)(sizeX + offsetX)) / 2;
             iconCenterY = ((int32_t)baseY + (int32_t)sizeY) / 2;
             iconRoom = std::min((int32_t)(sizeX + offsetX) - (int32_t)baseX, (int32_t)sizeY - (int32_t)baseY) / 2;
+            textAvailW = (int32_t)(sizeX + offsetX) - (int32_t)baseX - 1;
+            textAvailH = (int32_t)sizeY - (int32_t)baseY - 1;
         }
+    }
+
+    // custom text from the layout editor: regular font if it fits inside the shape, otherwise the 3x5 font
+    if (this->_icon == GP_BUTTON_ICON_TEXT) {
+        if (iconCenterX >= 0 && !this->_text.empty()) {
+            const char* text = this->_text.c_str();
+            GPTextFont font = GP_TEXT_FONT_STANDARD;
+            if ((int32_t)gpTextWidth(text, font) > textAvailW || (int32_t)gpTextHeight(font) > textAvailH) {
+                font = GP_TEXT_FONT_TINY;
+            }
+            int32_t originX = iconCenterX - (int32_t)gpTextWidth(text, font) / 2;
+            int32_t originY = iconCenterY - (int32_t)gpTextHeight(font) / 2;
+            gpDrawText(getRenderer(), originX, originY, text, font, state ? 0 : 1);
+        }
+        return;
     }
 
     // mode-dependent face button icon (PlayStation shapes, Xbox/Nintendo letters, ...)

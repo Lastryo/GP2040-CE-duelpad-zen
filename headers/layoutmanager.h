@@ -24,7 +24,8 @@ typedef struct {
     uint16_t angleStart;
     uint16_t angleEnd;
     uint16_t closed;
-    uint16_t icon; // 0 = automatic, 255 = hidden, otherwise GPButtonIcon id
+    uint16_t icon; // 0 = automatic, 254 = text, 255 = hidden, otherwise GPButtonIcon id
+    const char* text; // label / button text, points into the stored display options
 } GPButtonParameters;
 
 typedef struct {
