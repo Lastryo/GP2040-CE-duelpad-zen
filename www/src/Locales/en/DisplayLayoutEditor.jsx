@@ -36,8 +36,10 @@ export default {
 	'icon-too-small':
 		'Icons are drawn only in shapes with a radius (or half size) of at least 4 px.',
 	'text-hint':
-		'Up to 16 characters, Latin letters, digits and symbols only. The small 3x5 font shows letters in uppercase. On buttons the 5x7 font is used when the text fits inside, otherwise the 3x5 font.',
+		'Up to 16 characters: Latin letters, digits, punctuation and the symbol buttons (arrows, PlayStation shapes). The small 3x5 font shows letters in uppercase. On buttons the automatic font is 5x7 when the text fits inside with a pixel to spare, otherwise 3x5.',
+	'insert-symbol': 'Insert symbol',
 	fonts: {
+		auto: 'Automatic',
 		tiny: 'Small 3x5',
 		standard: 'Regular 5x7',
 	},

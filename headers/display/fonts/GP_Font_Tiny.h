@@ -22,4 +22,12 @@ static const uint16_t GP_Font_Tiny[GP_FONT_TINY_COUNT] = {
     0x5AAD, 0x5A92, 0x72A7, 0x3493, 0x4889, 0x6496, 0x2A00, 0x0007
 };
 
+// symbols 0x80.. (triangle, circle, cross, square, arrows), same codes as the regular font
+#define GP_FONT_TINY_SYMBOLS_FIRST 0x80
+#define GP_FONT_TINY_SYMBOLS_COUNT 12
+
+static const uint16_t GP_Font_Tiny_Symbols[GP_FONT_TINY_SYMBOLS_COUNT] = {
+    0x0578, 0x0550, 0x0AA8, 0x0F78, 0x2E92, 0x24BA, 0x17D9, 0x4DF4, 0x6888, 0x32A0, 0x02A6, 0x088B
+};
+
 #endif

@@ -247,6 +247,8 @@ message DisplayLayoutElement
     optional uint32 icon = 13;
     // label text (GP_ELEMENT_LABEL) or button text when icon == 254
     optional string text = 14 [(nanopb).max_size = 17];
+    // font of button text: 0 = automatic, 1 = small 3x5, 2 = regular 5x7
+    optional uint32 textFont = 15;
 }
 
 message DisplayOptions

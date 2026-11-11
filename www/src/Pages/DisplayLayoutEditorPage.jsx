@@ -6,7 +6,7 @@ import { GpioAction, GPElement, GPShape_Type, InputMode } from '@proto/enums';
 import { AppContext } from '../Contexts/AppContext';
 import Section from '../Components/Section';
 import WebApi from '../Services/WebApi';
-import { STANDARD_FONT, TINY_FONT } from '../Data/DisplayFonts';
+import { STANDARD_FONT, SYMBOL_CODES, TINY_FONT, TINY_SYMBOLS } from '../Data/DisplayFonts';
 import './DisplayLayoutEditorPage.scss';
 
 const SCREEN_WIDTH = 128;
@@ -143,17 +143,20 @@ const FIELDS = [
 const TEXT_MAX_LENGTH = 16;
 const FONT_TINY = 0;
 const FONT_STANDARD = 1;
+const SYMBOLS = Object.keys(SYMBOL_CODES);
+// printable ASCII plus the display font's symbols (arrows, PlayStation shapes)
 const sanitizeText = (text) =>
-	String(text ?? '')
-		.replace(/[^\x20-\x7e]/g, '')
-		.slice(0, TEXT_MAX_LENGTH);
+	[...String(text ?? '')]
+		.filter((ch) => (ch >= ' ' && ch <= '~') || SYMBOL_CODES[ch] !== undefined)
+		.slice(0, TEXT_MAX_LENGTH)
+		.join('');
 const textAdvance = (font) => (font === FONT_STANDARD ? 6 : 4);
 const textHeight = (font) => (font === FONT_STANDARD ? 7 : 5);
 const textWidth = (text, font) => (text.length ? text.length * textAdvance(font) - 1 : 0);
 const textPixels = (text, font) => {
 	const pixels = [];
 	[...text].forEach((ch, i) => {
-		let code = ch.charCodeAt(0);
+		let code = SYMBOL_CODES[ch] ?? ch.charCodeAt(0);
 		const ox = i * textAdvance(font);
 		if (font === FONT_STANDARD) {
 			if (code < 32 || code - 32 >= STANDARD_FONT.length / 5) code = 63;
@@ -163,8 +166,13 @@ const textPixels = (text, font) => {
 			}
 		} else {
 			if (code >= 97 && code <= 122) code -= 32;
-			if (code < 32 || code >= 32 + TINY_FONT.length) code = 63;
-			const glyph = TINY_FONT[code - 32];
+			let glyph;
+			if (code >= 0x80 && code < 0x80 + TINY_SYMBOLS.length) {
+				glyph = TINY_SYMBOLS[code - 0x80];
+			} else {
+				if (code < 32 || code >= 32 + TINY_FONT.length) code = 63;
+				glyph = TINY_FONT[code - 32];
+			}
 			for (let row = 0; row < 5; row++) {
 				const bits = (glyph >> ((4 - row) * 3)) & 7;
 				for (let col = 0; col < 3; col++) if (bits & (4 >> col)) pixels.push([ox + col, row]);
@@ -180,11 +188,17 @@ const toInt = (v, min = 0, max = 65535) => {
 	return Math.min(max, Math.max(min, n));
 };
 
+// button text font: 0 = automatic, 1 = small 3x5, 2 = regular 5x7
 const fromArray = (arr) => ({
 	...Object.fromEntries(FIELDS.map((field, i) => [field, toInt(arr?.[i] ?? 0)])),
 	text: sanitizeText(arr?.[FIELDS.length]),
+	textFont: toInt(arr?.[FIELDS.length + 1] ?? 0, 0, 2),
 });
-const toArray = (el) => [...FIELDS.map((field) => toInt(el[field])), sanitizeText(el.text)];
+const toArray = (el) => [
+	...FIELDS.map((field) => toInt(el[field])),
+	sanitizeText(el.text),
+	toInt(el.textFont ?? 0, 0, 2),
+];
 
 const fromLayoutElement = (item) => ({
 	type: toInt(item.elementType),
@@ -201,6 +215,7 @@ const fromLayoutElement = (item) => ({
 	closed: toInt(item.parameters?.closed),
 	icon: ICON_AUTO,
 	text: '',
+	textFont: 0,
 });
 
 const isLever = (el) => el.type === GPElement.GP_ELEMENT_LEVER;
@@ -249,11 +264,15 @@ const iconPlacement = (el) => {
 	};
 };
 
-// font GPButton::draw() picks for button text
-const buttonTextFont = (el, place) =>
-	textWidth(el.text, FONT_STANDARD) <= place.availW && textHeight(FONT_STANDARD) <= place.availH
+// font GPButton::draw() picks for button text (automatic: regular font with 1px clearance)
+const buttonTextFont = (el, place) => {
+	if (el.textFont === 1) return FONT_TINY;
+	if (el.textFont === 2) return FONT_STANDARD;
+	return textWidth(el.text, FONT_STANDARD) <= place.availW - 2 &&
+		textHeight(FONT_STANDARD) <= place.availH - 2
 		? FONT_STANDARD
 		: FONT_TINY;
+};
 
 const resolveIcon = (el, { buttonIcons, inputMode, pinActions }) => {
 	if (!isButton(el) || el.icon === ICON_HIDDEN || el.icon === ICON_TEXT) return null;
@@ -608,6 +627,7 @@ export default function DisplayLayoutEditorPage() {
 			closed: 0,
 			icon: ICON_AUTO,
 			text: '',
+			textFont: 0,
 		};
 		if (type === GPElement.GP_ELEMENT_LABEL) {
 			Object.assign(base, { x1: 4, y1: 4, value: FONT_TINY, text: 'TEXT' });
@@ -796,16 +816,49 @@ export default function DisplayLayoutEditorPage() {
 		];
 	};
 
+	const textInputRef = useRef(null);
+	const insertSymbol = (symbol) => {
+		const input = textInputRef.current;
+		const text = selectedEl.text;
+		// selection positions are UTF-16 offsets; all supported characters are single code units
+		const start = input?.selectionStart ?? text.length;
+		const end = input?.selectionEnd ?? text.length;
+		const next = sanitizeText(text.slice(0, start) + symbol + text.slice(end));
+		updateSelected({ text: next });
+		window.requestAnimationFrame(() => {
+			if (!input) return;
+			input.focus();
+			const caret = Math.min(start + 1, next.length);
+			input.setSelectionRange(caret, caret);
+		});
+	};
+
 	const textField = (el, md = 6) => (
 		<Form.Group as={Col} xs={12} md={md} className="mb-2">
 			<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.text')}</Form.Label>
 			<Form.Control
+				ref={textInputRef}
 				size="sm"
 				type="text"
 				maxLength={TEXT_MAX_LENGTH}
 				value={el.text}
 				onChange={(e) => updateSelected({ text: sanitizeText(e.target.value) })}
 			/>
+			<div className="d-flex flex-wrap gap-1 mt-1">
+				{SYMBOLS.map((symbol) => (
+					<Button
+						key={symbol}
+						size="sm"
+						variant="outline-secondary"
+						className="dle-symbol"
+						title={t('DisplayLayoutEditor:insert-symbol')}
+						disabled={el.text.length >= TEXT_MAX_LENGTH}
+						onClick={() => insertSymbol(symbol)}
+					>
+						{symbol}
+					</Button>
+				))}
+			</div>
 		</Form.Group>
 	);
 
@@ -1097,6 +1150,20 @@ export default function DisplayLayoutEditorPage() {
 									</Form.Group>
 								)}
 								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && textField(selectedEl)}
+								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && (
+									<Form.Group as={Col} xs={12} md={6} className="mb-2">
+										<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.font')}</Form.Label>
+										<Form.Select
+											size="sm"
+											value={selectedEl.textFont ?? 0}
+											onChange={(e) => updateSelected({ textFont: toInt(e.target.value, 0, 2) })}
+										>
+											<option value={0}>{t('DisplayLayoutEditor:fonts.auto')}</option>
+											<option value={1}>{t('DisplayLayoutEditor:fonts.tiny')}</option>
+											<option value={2}>{t('DisplayLayoutEditor:fonts.standard')}</option>
+										</Form.Select>
+									</Form.Group>
+								)}
 							</Row>
 							<Row>{geometryFields(selectedEl)}</Row>
 							<div className="d-flex flex-wrap gap-3 small">

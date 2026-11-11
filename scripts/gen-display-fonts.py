@@ -20,6 +20,33 @@ TINY = {
 'X':"101 101 010 101 101", 'Y':"101 101 010 010 010", 'Z':"111 001 010 100 111", '[':"011 010 010 010 011",
 '\\':"100 100 010 001 001", ']':"110 010 010 010 110", '^':"010 101 000 000 000", '_':"000 000 000 000 111",
 }
+# Symbols of the regular display font (headers/display/GPGFX_core.h CHAR_*), with 3x5 versions.
+# (font code, unicode character typed in the editor, 3x5 glyph)
+SYMBOLS = [
+    (0x80, '\u25b3', "000 010 101 111 000"),  # triangle
+    (0x81, '\u25cb', "000 010 101 010 000"),  # circle
+    (0x82, '\u2715', "000 101 010 101 000"),  # cross
+    (0x83, '\u25a1', "000 111 101 111 000"),  # square
+    (0x84, '\u2191', "010 111 010 010 010"),  # up
+    (0x85, '\u2193', "010 010 010 111 010"),  # down
+    (0x86, '\u2190', "001 011 111 011 001"),  # left
+    (0x87, '\u2192', "100 110 111 110 100"),  # right
+    (0x88, '\u2196', "110 100 010 001 000"),  # up-left
+    (0x89, '\u2197', "011 001 010 100 000"),  # up-right
+    (0x8A, '\u2199', "000 001 010 100 110"),  # down-left
+    (0x8B, '\u2198', "000 100 010 001 011"),  # down-right
+]
+
+def pack(rows_str):
+    rows = rows_str.split()
+    assert len(rows) == 5 and all(len(r) == 3 for r in rows), rows_str
+    v = 0
+    for r in rows: v = (v << 3) | int(r, 2)
+    return v
+
+symbol_codes = [pack(g) for _, _, g in SYMBOLS]
+assert [c for c, _, _ in SYMBOLS] == list(range(0x80, 0x80 + len(SYMBOLS)))
+
 codes = []
 for c in range(32, 96):
     rows = TINY[chr(c)].split()
@@ -51,6 +78,14 @@ static const uint16_t GP_Font_Tiny[GP_FONT_TINY_COUNT] = {{
 {c_lines}
 }};
 
+// symbols 0x80.. (triangle, circle, cross, square, arrows), same codes as the regular font
+#define GP_FONT_TINY_SYMBOLS_FIRST 0x80
+#define GP_FONT_TINY_SYMBOLS_COUNT {len(symbol_codes)}
+
+static const uint16_t GP_Font_Tiny_Symbols[GP_FONT_TINY_SYMBOLS_COUNT] = {{
+    {', '.join(f'0x{v:04X}' for v in symbol_codes)}
+}};
+
 #endif
 ''')
 
@@ -63,6 +98,16 @@ open(f'{repo}/www/src/Data/DisplayFonts.js', 'w').write(f'''// Pixel fonts used 
 export const TINY_FONT = [
 {js_arr(codes, 8, lambda v: f'0x{v:04x}')},
 ];
+
+// 3x5 versions of the symbols at font codes 0x80..
+export const TINY_SYMBOLS = [
+	{', '.join(f'0x{v:04x}' for v in symbol_codes)},
+];
+
+// characters typed in the editor -> font code (the controller stores one byte per symbol)
+export const SYMBOL_CODES = {{
+{chr(10).join(f"	'{u}': 0x{c:02x}," for c, u, _ in SYMBOLS)}
+}};
 
 // 5x7 in a 6x8 cell, ASCII from 32, five column bytes per glyph, bit 0 = top row
 export const STANDARD_FONT = [

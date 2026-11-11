@@ -235,13 +235,18 @@ void GPButton::draw() {
         }
     }
 
-    // custom text from the layout editor: regular font if it fits inside the shape, otherwise the 3x5 font
+    // custom text from the layout editor. Automatic font: the regular one when it fits with a pixel of
+    // clearance from the outline, otherwise the 3x5 font.
     if (this->_icon == GP_BUTTON_ICON_TEXT) {
         if (iconCenterX >= 0 && !this->_text.empty()) {
             const char* text = this->_text.c_str();
             GPTextFont font = GP_TEXT_FONT_STANDARD;
-            if ((int32_t)gpTextWidth(text, font) > textAvailW || (int32_t)gpTextHeight(font) > textAvailH) {
+            if (this->_textFont == 1) {
                 font = GP_TEXT_FONT_TINY;
+            } else if (this->_textFont != 2) {
+                if ((int32_t)gpTextWidth(text, font) > textAvailW - 2 || (int32_t)gpTextHeight(font) > textAvailH - 2) {
+                    font = GP_TEXT_FONT_TINY;
+                }
             }
             int32_t originX = iconCenterX - (int32_t)gpTextWidth(text, font) / 2;
             int32_t originY = iconCenterY - (int32_t)gpTextHeight(font) / 2;

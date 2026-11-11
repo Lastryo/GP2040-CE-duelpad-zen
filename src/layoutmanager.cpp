@@ -730,6 +730,7 @@ LayoutManager::LayoutList LayoutManager::drawUserDefined()
         element.parameters.closed = e.closed;
         element.parameters.icon = e.icon;
         element.parameters.text = e.text;
+        element.parameters.textFont = e.textFont;
         layout.push_back(element);
     }
     return layout;

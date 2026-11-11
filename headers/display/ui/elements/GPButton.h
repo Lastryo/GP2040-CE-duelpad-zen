@@ -20,6 +20,7 @@ class GPButton : public GPWidget {
         GPButton* setShape(GPShape_Type shape) { this->_shape = shape; return this; }
         GPButton* setIcon(uint16_t icon) { this->_icon = icon; return this; }
         GPButton* setText(const char* text) { this->_text = text ? text : ""; return this; }
+        GPButton* setTextFont(uint16_t textFont) { this->_textFont = textFont; return this; }
     private:
         uint16_t _sizeX = 0;
         uint16_t _sizeY = 0;
@@ -32,6 +33,7 @@ class GPButton : public GPWidget {
         GPShape_Type _shape = GP_SHAPE_ELLIPSE;
         uint16_t _icon = 0; // 0 = automatic, 254 = text, 255 = hidden, otherwise GPButtonIcon id
         std::string _text;  // drawn when _icon == GP_BUTTON_ICON_TEXT
+        uint16_t _textFont = 0; // 0 = automatic, 1 = small 3x5, 2 = regular 5x7
 };
 
 #endif

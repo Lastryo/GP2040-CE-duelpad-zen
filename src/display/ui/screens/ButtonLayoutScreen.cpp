@@ -337,6 +337,7 @@ GPWidget* ButtonLayoutScreen::pushElement(GPButtonLayout element) {
         button->setClosed(element.parameters.closed);
         button->setIcon(element.parameters.icon);
         button->setText(element.parameters.text);
+        button->setTextFont(element.parameters.textFont);
 
         if (element.elementType == GP_ELEMENT_DIR_BUTTON) button->setInputDirection(true);
 
