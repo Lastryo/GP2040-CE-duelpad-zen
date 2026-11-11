@@ -20,10 +20,9 @@ class GPGFX_UI {
         GPGFX* getRenderer() { return _renderer; }
         Gamepad* getGamepad();
         Gamepad* getProcessedGamepad();
-        DisplayOptions getDisplayOptions();
+        const DisplayOptions& getDisplayOptions(); // by reference: DisplayOptions is several KB and Core1 has a 4KB stack
     private:
         GPGFX* _renderer;
-        DisplayOptions _displayOptions;
         bool _configMode;
 };
 
