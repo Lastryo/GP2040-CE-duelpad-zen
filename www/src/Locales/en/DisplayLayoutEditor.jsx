@@ -15,6 +15,8 @@ export default {
 	duplicate: 'Duplicate',
 	delete: 'Delete',
 	clear: 'Clear all',
+	'names-all': 'Use button names on all buttons',
+	'names-applied': 'All buttons now show their name for the active input mode.',
 	'import-current': 'Load current screen layout',
 	'export-file': 'Export file',
 	'import-file': 'Import file',
@@ -38,6 +40,8 @@ export default {
 	'text-hint':
 		'Up to 16 characters: Latin letters, digits, punctuation and the symbol buttons (arrows, PlayStation shapes). The small 3x5 font shows letters in uppercase. On buttons the automatic font is 5x7 when the text fits inside with a pixel to spare, otherwise 3x5.',
 	'insert-symbol': 'Insert symbol',
+	'name-hint':
+		'Shows the name of the button in the active input mode: R1 on PlayStation, RB on Xbox, R on Switch, 6 in Generic HID; arrows for the D-pad, shape or letter icons for face buttons. Use "Icons for" above the screen to preview other modes.',
 	fonts: {
 		auto: 'Automatic',
 		tiny: 'Small 3x5',
@@ -63,6 +67,7 @@ export default {
 	icons: {
 		auto: 'Automatic (by input mode)',
 		hidden: 'None',
+		name: 'Button name (by input mode)',
 		text: 'Text',
 		cross: 'Cross ✕',
 		circle: 'Circle ○',

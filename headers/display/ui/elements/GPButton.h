@@ -4,6 +4,7 @@
 #include <string>
 #include "GPWidget.h"
 #include "enums.pb.h"
+#include "config.pb.h"
 
 #define GP_BUTTON_TURBO_SCALE 0.70
 
@@ -22,6 +23,7 @@ class GPButton : public GPWidget {
         GPButton* setText(const char* text) { this->_text = text ? text : ""; return this; }
         GPButton* setTextFont(uint16_t textFont) { this->_textFont = textFont; return this; }
     private:
+        int8_t buttonNameIndex(GpioMappingInfo* pinMappings);
         uint16_t _sizeX = 0;
         uint16_t _sizeY = 0;
         double _angle = 0;

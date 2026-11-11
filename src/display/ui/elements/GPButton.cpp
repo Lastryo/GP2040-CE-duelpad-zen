@@ -235,62 +235,85 @@ void GPButton::draw() {
         }
     }
 
-    // custom text from the layout editor. Automatic font: the regular one when it fits with a pixel of
-    // clearance from the outline, otherwise the 3x5 font.
+    if (iconCenterX < 0 || this->_icon == GP_BUTTON_ICON_HIDDEN) return;
+
+    // Decide what goes inside the button: a 5x5 icon or a text.
+    GPButtonIcon icon = GP_ICON_NONE;
+    const char* text = nullptr;
+
     if (this->_icon == GP_BUTTON_ICON_TEXT) {
-        if (iconCenterX >= 0 && !this->_text.empty()) {
-            const char* text = this->_text.c_str();
-            GPTextFont font = GP_TEXT_FONT_STANDARD;
-            if (this->_textFont == 1) {
+        // custom text from the layout editor
+        text = this->_text.c_str();
+    } else if (this->_icon == GP_BUTTON_ICON_NAME) {
+        // button name for the current input mode (R1 / RB / R ...), face buttons as icons when they fit
+        InputMode mode = Storage::getInstance().getGamepadOptions().inputMode;
+        int8_t index = buttonNameIndex(pinMappings);
+        if (index >= 0) {
+            if (index < 4 && iconRoom >= 4) icon = getButtonIconForMode(mode, (uint8_t)index);
+            if (icon == GP_ICON_NONE) text = getButtonNameForMode(mode, (uint8_t)index);
+        }
+    } else if (this->_icon != GP_BUTTON_ICON_AUTO) {
+        // fixed icon chosen in the layout editor
+        if (this->_icon < GP_ICON_COUNT && iconRoom >= 4) icon = (GPButtonIcon)this->_icon;
+    } else if (Storage::getInstance().getDisplayOptions().buttonIcons && iconRoom >= 4) {
+        // automatic face button icon (PlayStation shapes, Xbox/Nintendo letters, ...)
+        int8_t faceIndex = -1;
+        if (_inputType == GP_ELEMENT_BTN_BUTTON) {
+            faceIndex = faceIndexFromMask((uint32_t)this->_inputMask);
+        } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
+            faceIndex = faceIndexFromAction(pinMappings[this->_inputMask].action);
+        }
+        if (faceIndex >= 0) icon = getButtonIconForMode(Storage::getInstance().getGamepadOptions().inputMode, (uint8_t)faceIndex);
+    }
+
+    // pressed buttons are filled, so icons and text are drawn inverted
+    uint32_t inkColor = state ? 0 : 1;
+
+    if (text != nullptr && text[0] != '\0') {
+        // automatic font: the regular one when it fits with a pixel of clearance from the outline, otherwise 3x5
+        GPTextFont font = GP_TEXT_FONT_STANDARD;
+        if (this->_textFont == 1) {
+            font = GP_TEXT_FONT_TINY;
+        } else if (this->_textFont != 2) {
+            if ((int32_t)gpTextWidth(text, font) > textAvailW - 2 || (int32_t)gpTextHeight(font) > textAvailH - 2) {
                 font = GP_TEXT_FONT_TINY;
-            } else if (this->_textFont != 2) {
-                if ((int32_t)gpTextWidth(text, font) > textAvailW - 2 || (int32_t)gpTextHeight(font) > textAvailH - 2) {
-                    font = GP_TEXT_FONT_TINY;
-                }
             }
-            int32_t originX = iconCenterX - (int32_t)gpTextWidth(text, font) / 2;
-            int32_t originY = iconCenterY - (int32_t)gpTextHeight(font) / 2;
-            gpDrawText(getRenderer(), originX, originY, text, font, state ? 0 : 1);
         }
-        return;
-    }
-
-    // mode-dependent face button icon (PlayStation shapes, Xbox/Nintendo letters, ...)
-    // a 5x5 glyph needs at least a radius of 4 to sit inside the outline
-    // an explicit icon (set in the layout editor) is always drawn, automatic ones follow the setting
-    bool explicitIcon = (this->_icon != GP_BUTTON_ICON_AUTO) && (this->_icon != GP_BUTTON_ICON_HIDDEN) && (this->_icon < GP_ICON_COUNT);
-    bool autoIcon = (this->_icon == GP_BUTTON_ICON_AUTO) && Storage::getInstance().getDisplayOptions().buttonIcons;
-    if (iconRoom >= 4 && (explicitIcon || autoIcon)) {
-        GPButtonIcon icon = GP_ICON_NONE;
-        if (explicitIcon) {
-            icon = (GPButtonIcon)this->_icon;
-        } else {
-            int8_t faceIndex = -1;
-            if (_inputType == GP_ELEMENT_BTN_BUTTON) {
-                faceIndex = faceIndexFromMask((uint32_t)this->_inputMask);
-            } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
-                faceIndex = faceIndexFromAction(pinMappings[this->_inputMask].action);
-            }
-            if (faceIndex >= 0) icon = getButtonIconForMode(Storage::getInstance().getGamepadOptions().inputMode, (uint8_t)faceIndex);
-        }
-
-        {
-            if (icon != GP_ICON_NONE) {
-                const uint8_t* glyph = GP_BUTTON_ICON_GLYPHS[icon];
-                // pressed buttons are filled, so draw the icon inverted
-                uint32_t iconColor = state ? 0 : 1;
-                int32_t originX = iconCenterX - GP_BUTTON_ICON_SIZE / 2;
-                int32_t originY = iconCenterY - GP_BUTTON_ICON_SIZE / 2;
-                for (uint8_t row = 0; row < GP_BUTTON_ICON_SIZE; row++) {
-                    for (uint8_t col = 0; col < GP_BUTTON_ICON_SIZE; col++) {
-                        if (glyph[row] & (1 << (GP_BUTTON_ICON_SIZE - 1 - col))) {
-                            int32_t px = originX + col;
-                            int32_t py = originY + row;
-                            if (px >= 0 && py >= 0) getRenderer()->drawPixel((uint16_t)px, (uint16_t)py, iconColor);
-                        }
-                    }
+        int32_t originX = iconCenterX - (int32_t)gpTextWidth(text, font) / 2;
+        int32_t originY = iconCenterY - (int32_t)gpTextHeight(font) / 2;
+        gpDrawText(getRenderer(), originX, originY, text, font, inkColor);
+    } else if (icon != GP_ICON_NONE) {
+        const uint8_t* glyph = GP_BUTTON_ICON_GLYPHS[icon];
+        int32_t originX = iconCenterX - GP_BUTTON_ICON_SIZE / 2;
+        int32_t originY = iconCenterY - GP_BUTTON_ICON_SIZE / 2;
+        for (uint8_t row = 0; row < GP_BUTTON_ICON_SIZE; row++) {
+            for (uint8_t col = 0; col < GP_BUTTON_ICON_SIZE; col++) {
+                if (glyph[row] & (1 << (GP_BUTTON_ICON_SIZE - 1 - col))) {
+                    int32_t px = originX + col;
+                    int32_t py = originY + row;
+                    if (px >= 0 && py >= 0) getRenderer()->drawPixel((uint16_t)px, (uint16_t)py, inkColor);
                 }
             }
         }
     }
+}
+
+// Index into the button name tables (see GPButtonIcons.h) for this button, or -1.
+int8_t GPButton::buttonNameIndex(GpioMappingInfo* pinMappings) {
+    if (_inputType == GP_ELEMENT_BTN_BUTTON) {
+        for (uint8_t i = 0; i < GP_BUTTON_NAME_BUTTONS; i++) {
+            if ((uint32_t)this->_inputMask == (1u << i)) return (int8_t)i;
+        }
+    } else if (_inputType == GP_ELEMENT_DIR_BUTTON) {
+        switch ((uint32_t)this->_inputMask) {
+            case GAMEPAD_MASK_UP:    return GP_BUTTON_NAME_UP;
+            case GAMEPAD_MASK_DOWN:  return GP_BUTTON_NAME_DOWN;
+            case GAMEPAD_MASK_LEFT:  return GP_BUTTON_NAME_LEFT;
+            case GAMEPAD_MASK_RIGHT: return GP_BUTTON_NAME_RIGHT;
+            default: break;
+        }
+    } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
+        return buttonNameIndexFromAction(pinMappings[this->_inputMask].action);
+    }
+    return -1;
 }

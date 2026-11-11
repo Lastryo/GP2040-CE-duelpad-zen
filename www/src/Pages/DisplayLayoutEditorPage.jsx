@@ -16,6 +16,7 @@ const FILE_VERSION = 1;
 
 // Must match headers/display/ui/elements/GPButtonIcons.h
 const ICON_AUTO = 0;
+const ICON_NAME = 253;
 const ICON_TEXT = 254;
 const ICON_HIDDEN = 255;
 const ICONS = [
@@ -265,18 +266,81 @@ const iconPlacement = (el) => {
 };
 
 // font GPButton::draw() picks for button text (automatic: regular font with 1px clearance)
-const buttonTextFont = (el, place) => {
-	if (el.textFont === 1) return FONT_TINY;
-	if (el.textFont === 2) return FONT_STANDARD;
-	return textWidth(el.text, FONT_STANDARD) <= place.availW - 2 &&
+const buttonTextFont = (text, textFont, place) => {
+	if (textFont === 1) return FONT_TINY;
+	if (textFont === 2) return FONT_STANDARD;
+	return textWidth(text, FONT_STANDARD) <= place.availW - 2 &&
 		textHeight(FONT_STANDARD) <= place.availH - 2
 		? FONT_STANDARD
 		: FONT_TINY;
 };
 
-const resolveIcon = (el, { buttonIcons, inputMode, pinActions }) => {
-	if (!isButton(el) || el.icon === ICON_HIDDEN || el.icon === ICON_TEXT) return null;
-	if (el.icon !== ICON_AUTO) return ICON_BY_ID[el.icon] || null;
+// Button names per input mode, must match headers/display/ui/elements/GPButtonIcons.h.
+// Index 0..13 = B1 B2 B3 B4 L1 R1 L2 R2 S1 S2 L3 R3 A1 A2, 14..17 = up down left right.
+const ARROWS = ['↑', '↓', '←', '→'];
+const BUTTON_NAMES = {
+	ps: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'SH', 'OP', 'L3', 'R3', 'PS', 'TP', ...ARROWS],
+	ps3: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'SE', 'ST', 'L3', 'R3', 'PS', '', ...ARROWS],
+	xinput: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BK', 'ST', 'LS', 'RS', 'XB', '', ...ARROWS],
+	xbone: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VW', 'MN', 'LS', 'RS', 'XB', 'SH', ...ARROWS],
+	nintendo: ['B', 'A', 'Y', 'X', 'L', 'R', 'ZL', 'ZR', '-', '+', 'LS', 'RS', 'HM', 'CP', ...ARROWS],
+	hid: ['2', '3', '1', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', ...ARROWS],
+	gp2040: ['B1', 'B2', 'B3', 'B4', 'L1', 'R1', 'L2', 'R2', 'S1', 'S2', 'L3', 'R3', 'A1', 'A2', ...ARROWS],
+};
+const NAME_FAMILY = {
+	[InputMode.INPUT_MODE_PS4]: 'ps',
+	[InputMode.INPUT_MODE_PS5]: 'ps',
+	[InputMode.INPUT_MODE_P5GENERAL]: 'ps',
+	[InputMode.INPUT_MODE_PS3]: 'ps3',
+	[InputMode.INPUT_MODE_PSCLASSIC]: 'ps3',
+	[InputMode.INPUT_MODE_XINPUT]: 'xinput',
+	[InputMode.INPUT_MODE_XBOXORIGINAL]: 'xinput',
+	[InputMode.INPUT_MODE_XBONE]: 'xbone',
+	[InputMode.INPUT_MODE_SWITCH]: 'nintendo',
+	[InputMode.INPUT_MODE_SWITCH_PRO]: 'nintendo',
+	[InputMode.INPUT_MODE_GENERIC]: 'hid',
+};
+const NAME_ACTIONS = [
+	'B1', 'B2', 'B3', 'B4', 'L1', 'R1', 'L2', 'R2', 'S1', 'S2', 'L3', 'R3', 'A1', 'A2',
+	'UP', 'DOWN', 'LEFT', 'RIGHT',
+].map((name) => GpioAction[`BUTTON_PRESS_${name}`]);
+
+const buttonNameIndex = (el, pinActions) => {
+	if (el.type === GPElement.GP_ELEMENT_BTN_BUTTON) {
+		const index = BUTTON_MASKS.findIndex(([, mask]) => mask === el.value);
+		return index < 14 ? index : -1;
+	}
+	if (el.type === GPElement.GP_ELEMENT_DIR_BUTTON) {
+		const index = DPAD_MASKS.findIndex(([, mask]) => mask === el.value);
+		return index < 0 ? -1 : 14 + index;
+	}
+	if (el.type === GPElement.GP_ELEMENT_PIN_BUTTON) return NAME_ACTIONS.indexOf(pinActions[el.value]);
+	return -1;
+};
+
+const faceIcon = (inputMode, faceIndex) => {
+	const family = MODE_FAMILY[inputMode];
+	return family ? ICON_BY_ID[ICON_FAMILIES[family][faceIndex]] : null;
+};
+
+// What GPButton::draw() puts inside a button: { icon } or { text, font }, plus where
+const resolveContent = (el, { buttonIcons, inputMode, pinActions }) => {
+	if (!isButton(el) || el.icon === ICON_HIDDEN) return null;
+	const place = iconPlacement(el);
+	if (!place) return null;
+	const withText = (text) =>
+		text ? { place, text, font: buttonTextFont(text, el.textFont ?? 0, place) } : null;
+
+	if (el.icon === ICON_TEXT) return withText(el.text);
+	if (el.icon === ICON_NAME) {
+		const index = buttonNameIndex(el, pinActions);
+		if (index < 0) return null;
+		const icon = index < 4 && place.room >= 4 ? faceIcon(inputMode, index) : null;
+		if (icon) return { place, icon };
+		return withText(BUTTON_NAMES[NAME_FAMILY[inputMode] || 'gp2040'][index]);
+	}
+	if (place.room < 4) return null;
+	if (el.icon !== ICON_AUTO) return ICON_BY_ID[el.icon] ? { place, icon: ICON_BY_ID[el.icon] } : null;
 	if (!buttonIcons) return null;
 	let faceIndex = -1;
 	if (el.type === GPElement.GP_ELEMENT_BTN_BUTTON) {
@@ -284,9 +348,8 @@ const resolveIcon = (el, { buttonIcons, inputMode, pinActions }) => {
 	} else if (el.type === GPElement.GP_ELEMENT_PIN_BUTTON) {
 		faceIndex = FACE_ACTIONS.indexOf(pinActions[el.value]);
 	}
-	const family = MODE_FAMILY[inputMode];
-	if (faceIndex < 0 || !family) return null;
-	return ICON_BY_ID[ICON_FAMILIES[family][faceIndex]];
+	const icon = faceIndex < 0 ? null : faceIcon(inputMode, faceIndex);
+	return icon ? { place, icon } : null;
 };
 
 const arcPath = (cx, cy, r, startDeg, endDeg, closed) => {
@@ -679,6 +742,11 @@ export default function DisplayLayoutEditorPage() {
 		}
 	};
 
+	const useNamesOnAllButtons = () => {
+		updateElements((prev) => prev.map((el) => (isButton(el) ? { ...el, icon: ICON_NAME } : el)));
+		showMessage('info', t('DisplayLayoutEditor:names-applied'));
+	};
+
 	const onClear = () => {
 		if (!window.confirm(t('DisplayLayoutEditor:confirm-clear'))) return;
 		updateElements(() => []);
@@ -985,11 +1053,8 @@ export default function DisplayLayoutEditorPage() {
 										</g>
 									);
 								}
-								const icon = resolveIcon(el, iconContext);
-								const place = icon ? iconPlacement(el) : null;
-								const textPlace =
-									isButton(el) && el.icon === ICON_TEXT && el.text ? iconPlacement(el) : null;
-								const textFont = textPlace ? buttonTextFont(el, textPlace) : FONT_TINY;
+								const content = resolveContent(el, iconContext);
+								const ink = pressed ? '#000' : color;
 								return (
 									<g
 										key={index}
@@ -999,21 +1064,21 @@ export default function DisplayLayoutEditorPage() {
 										<g transform="translate(0.5 0.5)">
 											<ElementShape el={el} color={color} filled={filled} />
 										</g>
-										{place && place.room >= 4 && (
+										{content?.icon && (
 											<IconPixels
-												icon={icon}
-												cx={place.cx}
-												cy={place.cy}
-												color={pressed ? '#000' : color}
+												icon={content.icon}
+												cx={content.place.cx}
+												cy={content.place.cy}
+												color={ink}
 											/>
 										)}
-										{textPlace && (
+										{content?.text && (
 											<TextPixels
-												text={el.text}
-												font={textFont}
-												x={textPlace.cx - Math.floor(textWidth(el.text, textFont) / 2)}
-												y={textPlace.cy - Math.floor(textHeight(textFont) / 2)}
-												color={pressed ? '#000' : color}
+												text={content.text}
+												font={content.font}
+												x={content.place.cx - Math.floor(textWidth(content.text, content.font) / 2)}
+												y={content.place.cy - Math.floor(textHeight(content.font) / 2)}
+												color={ink}
 											/>
 										)}
 									</g>
@@ -1140,6 +1205,7 @@ export default function DisplayLayoutEditorPage() {
 										>
 											<option value={ICON_AUTO}>{t('DisplayLayoutEditor:icons.auto')}</option>
 											<option value={ICON_HIDDEN}>{t('DisplayLayoutEditor:icons.hidden')}</option>
+											<option value={ICON_NAME}>{t('DisplayLayoutEditor:icons.name')}</option>
 											<option value={ICON_TEXT}>{t('DisplayLayoutEditor:icons.text')}</option>
 											{ICONS.map((icon) => (
 												<option key={icon.id} value={icon.id}>
@@ -1150,7 +1216,7 @@ export default function DisplayLayoutEditorPage() {
 									</Form.Group>
 								)}
 								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && textField(selectedEl)}
-								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && (
+								{isButton(selectedEl) && (selectedEl.icon === ICON_TEXT || selectedEl.icon === ICON_NAME) && (
 									<Form.Group as={Col} xs={12} md={6} className="mb-2">
 										<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.font')}</Form.Label>
 										<Form.Select
@@ -1201,11 +1267,14 @@ export default function DisplayLayoutEditorPage() {
 									/>
 								)}
 							</div>
-							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && selectedEl.icon !== ICON_TEXT && (
+							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && selectedEl.icon !== ICON_TEXT && selectedEl.icon !== ICON_NAME && (
 								<p className="small text-warning mt-2 mb-0">{t('DisplayLayoutEditor:icon-too-small')}</p>
 							)}
 							{((isButton(selectedEl) && selectedEl.icon === ICON_TEXT) || isLabel(selectedEl)) && (
 								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:text-hint')}</p>
+							)}
+							{isButton(selectedEl) && selectedEl.icon === ICON_NAME && (
+								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:name-hint')}</p>
 							)}
 						</div>
 					)}
@@ -1274,6 +1343,14 @@ export default function DisplayLayoutEditorPage() {
 						</Button>
 						<Button size="sm" variant="danger" disabled={selected < 0} onClick={removeSelected}>
 							{t('DisplayLayoutEditor:delete')}
+						</Button>
+						<Button
+							size="sm"
+							variant="outline-secondary"
+							disabled={!elements.some(isButton)}
+							onClick={useNamesOnAllButtons}
+						>
+							{t('DisplayLayoutEditor:names-all')}
 						</Button>
 						<Button size="sm" variant="outline-danger" disabled={elements.length === 0} onClick={onClear}>
 							{t('DisplayLayoutEditor:clear')}
