@@ -164,7 +164,7 @@ class LayoutManager {
 
         std::string getLayoutNameByID();
     private:
-        uint32_t userLayoutRevision = 0;
+        volatile uint32_t userLayoutRevision = 0; // written on Core0 (web config), read on Core1 (display)
 };
 
 #endif

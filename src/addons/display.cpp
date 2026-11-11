@@ -13,6 +13,7 @@
 #include "usbdriver.h"
 #include "version.h"
 #include "config.pb.h"
+#include "layoutmanager.h"
 #include "class/hid/hid.h"
 
 bool DisplayAddon::available() {
@@ -69,6 +70,7 @@ void DisplayAddon::setup() {
     displaySaverMode = options.displaySaverMode;
 
     prevValues = Storage::getInstance().GetGamepad()->debouncedGpio;
+    prevUserLayoutRevision = LayoutManager::getInstance().getUserLayoutRevision();
 
     // set current display mode
     if (!configMode) {
@@ -201,6 +203,15 @@ void DisplayAddon::process() {
     if (gpDisplay->getDriver() == nullptr ||
         (!configMode && isDisplayPowerOff())) {
         return;
+    }
+
+    // Web Config sent a new layout from the layout editor: show the button screen so the preview is visible
+    uint32_t userLayoutRevision = LayoutManager::getInstance().getUserLayoutRevision();
+    if (userLayoutRevision != prevUserLayoutRevision) {
+        prevUserLayoutRevision = userLayoutRevision;
+        if (configMode && currDisplayMode != DisplayMode::BUTTONS) {
+            nextDisplayMode = DisplayMode::BUTTONS;
+        }
     }
 
     // Core0 requested a new display mode

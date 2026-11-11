@@ -220,6 +220,7 @@ private:
     GPGFX* gpDisplay;
     GPScreen* gpScreen;
     Mask_t prevValues;
+    uint32_t prevUserLayoutRevision = 0;
     DisplayMode currDisplayMode;
     DisplayMode prevDisplayMode;
     DisplayMode nextDisplayMode;

@@ -577,7 +577,8 @@ export default function DisplayLayoutEditorPage() {
 		setLoading(true);
 		try {
 			const result = await WebApi.setDisplayLayout(
-				{ elements: elements.map(toArray), activate },
+				// a preview always shows the edited layout; "activate" only matters when saving
+				{ elements: elements.map(toArray), activate: isPreview || activate },
 				isPreview,
 			);
 			if (!result) {

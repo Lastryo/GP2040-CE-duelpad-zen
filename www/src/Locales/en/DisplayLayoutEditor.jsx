@@ -23,8 +23,9 @@ export default {
 	save: 'Save',
 	'save-dirty': 'Save *',
 	'preview-hint':
-		'Preview is kept until the controller restarts. Changes on this page are lost if you leave it without saving.',
-	'preview-sent': 'Layout sent to the display (not saved).',
+		'Preview is kept until the controller restarts. Changes on this page are lost if you leave it without saving. On the controller, B1 returns from the button screen to the Web Config screen.',
+	'preview-sent':
+		'Layout shown on the controller display (not saved). The display switches to the button screen automatically.',
 	saved: 'Layout saved to the controller.',
 	'send-failed': 'Could not send the layout to the controller.',
 	'imported-current': 'Loaded {{count}} elements from the current screen layout.',
