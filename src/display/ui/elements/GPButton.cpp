@@ -227,16 +227,24 @@ void GPButton::draw() {
 
     // mode-dependent face button icon (PlayStation shapes, Xbox/Nintendo letters, ...)
     // a 5x5 glyph needs at least a radius of 4 to sit inside the outline
-    if (iconRoom >= 4 && Storage::getInstance().getDisplayOptions().buttonIcons) {
-        int8_t faceIndex = -1;
-        if (_inputType == GP_ELEMENT_BTN_BUTTON) {
-            faceIndex = faceIndexFromMask((uint32_t)this->_inputMask);
-        } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
-            faceIndex = faceIndexFromAction(pinMappings[this->_inputMask].action);
+    // an explicit icon (set in the layout editor) is always drawn, automatic ones follow the setting
+    bool explicitIcon = (this->_icon != GP_BUTTON_ICON_AUTO) && (this->_icon != GP_BUTTON_ICON_HIDDEN) && (this->_icon < GP_ICON_COUNT);
+    bool autoIcon = (this->_icon == GP_BUTTON_ICON_AUTO) && Storage::getInstance().getDisplayOptions().buttonIcons;
+    if (iconRoom >= 4 && (explicitIcon || autoIcon)) {
+        GPButtonIcon icon = GP_ICON_NONE;
+        if (explicitIcon) {
+            icon = (GPButtonIcon)this->_icon;
+        } else {
+            int8_t faceIndex = -1;
+            if (_inputType == GP_ELEMENT_BTN_BUTTON) {
+                faceIndex = faceIndexFromMask((uint32_t)this->_inputMask);
+            } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
+                faceIndex = faceIndexFromAction(pinMappings[this->_inputMask].action);
+            }
+            if (faceIndex >= 0) icon = getButtonIconForMode(Storage::getInstance().getGamepadOptions().inputMode, (uint8_t)faceIndex);
         }
 
-        if (faceIndex >= 0) {
-            GPButtonIcon icon = getButtonIconForMode(Storage::getInstance().getGamepadOptions().inputMode, (uint8_t)faceIndex);
+        {
             if (icon != GP_ICON_NONE) {
                 const uint8_t* glyph = GP_BUTTON_ICON_GLYPHS[icon];
                 // pressed buttons are filled, so draw the icon inverted

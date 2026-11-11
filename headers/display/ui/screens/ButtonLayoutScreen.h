@@ -171,6 +171,7 @@ class ButtonLayoutScreen : public GPScreen {
         ButtonLayoutParamsLeft prevLeftOptions;
         ButtonLayoutParamsRight prevRightOptions;
         ButtonLayoutOrientation prevOrientation;
+        uint32_t prevUserLayoutRevision = 0;
 
         bool hasTurboAssigned = false;
 

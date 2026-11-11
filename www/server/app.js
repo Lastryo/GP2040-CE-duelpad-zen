@@ -883,6 +883,34 @@ app.post('/api/getHETriggerCalibration', (req, res) => {
 	});
 });
 
+// Display layout editor
+let displayLayout = { active: false, maxElements: 40, elements: [] };
+app.get('/api/getDisplayLayout', (req, res) => res.send(displayLayout));
+app.post('/api/setDisplayLayout', (req, res) => {
+	console.log(req.body);
+	displayLayout = {
+		...displayLayout,
+		active: displayLayout.active || Boolean(req.body.activate),
+		elements: (req.body.elements || []).slice(0, displayLayout.maxElements),
+	};
+	return res.send(displayLayout);
+});
+
+app.get('/api/getButtonLayouts', (req, res) => {
+	const pin = (x1, y1, r, value) => ({
+		elementType: 4,
+		parameters: { x1, y1, x2: r, y2: r, stroke: 1, fill: 0, value, shape: 0, angleStart: 0, angleEnd: 0, closed: 0 },
+	});
+	return res.send({
+		displayLayouts: {
+			buttonLayoutId: 27,
+			buttonLayout: { 0: pin(12, 28, 4, 9), 1: pin(22, 28, 4, 10), 2: pin(32, 28, 4, 11), 3: pin(22, 40, 5, 16) },
+			buttonLayoutRightId: 31,
+			buttonLayoutRight: { 0: pin(70, 30, 4, 19), 1: pin(80, 29, 4, 24), 2: pin(68, 21, 4, 18), 3: pin(79, 19, 4, 25) },
+		},
+	});
+});
+
 app.post('/api/*', (req, res) => {
 	console.log(req.body);
 	return res.send(req.body);

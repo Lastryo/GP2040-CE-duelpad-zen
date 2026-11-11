@@ -384,6 +384,31 @@ async function getButtonLayouts() {
 	}
 }
 
+// Display layout editor. Elements travel as compact arrays:
+// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon]
+async function getDisplayLayout() {
+	try {
+		const { data } = await Http.get(`${baseUrl}/api/getDisplayLayout`);
+		return data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function setDisplayLayout(layout, isPreview = false) {
+	const body = {
+		elements: layout.elements || [],
+		activate: Boolean(layout.activate ?? layout.active),
+		preview: Boolean(isPreview),
+	};
+	return Http.post(`${baseUrl}/api/setDisplayLayout`, body)
+		.then((response) => response.data)
+		.catch((err) => {
+			console.error(err);
+			return false;
+		});
+}
+
 async function getButtonLayoutDefs() {
 	try {
 		const response = await Http.get(`${baseUrl}/api/getButtonLayoutDefs`);
@@ -737,6 +762,8 @@ export default {
 	setReactiveLEDs,
 	getButtonLayouts,
 	getButtonLayoutDefs,
+	getDisplayLayout,
+	setDisplayLayout,
 	getSplashImage,
 	setSplashImage,
 	getUsedPins,

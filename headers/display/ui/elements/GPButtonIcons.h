@@ -7,6 +7,8 @@
 // 5x5 monochrome glyphs drawn in the centre of face buttons.
 // One byte per row, bit 4 is the leftmost pixel.
 #define GP_BUTTON_ICON_SIZE 5
+#define GP_BUTTON_ICON_AUTO 0
+#define GP_BUTTON_ICON_HIDDEN 255
 
 typedef enum {
     GP_ICON_NONE = 0,

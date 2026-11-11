@@ -17,6 +17,7 @@ class GPButton : public GPWidget {
         GPButton* setAngleEnd(double angleEnd) { this->_angleEnd = angleEnd; return this; }
         GPButton* setClosed(bool closed) { this->_closed = closed; return this; }
         GPButton* setShape(GPShape_Type shape) { this->_shape = shape; return this; }
+        GPButton* setIcon(uint16_t icon) { this->_icon = icon; return this; }
     private:
         uint16_t _sizeX = 0;
         uint16_t _sizeY = 0;
@@ -27,6 +28,7 @@ class GPButton : public GPWidget {
         bool _inputDirection = false;
         GPElement _inputType = GP_ELEMENT_BTN_BUTTON;
         GPShape_Type _shape = GP_SHAPE_ELLIPSE;
+        uint16_t _icon = 0; // 0 = automatic, 255 = hidden, otherwise GPButtonIcon id
 };
 
 #endif

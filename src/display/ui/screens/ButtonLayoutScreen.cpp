@@ -45,6 +45,7 @@ void ButtonLayoutScreen::init() {
     prevLeftOptions = Storage::getInstance().getDisplayOptions().buttonLayoutCustomOptions.paramsLeft;
     prevRightOptions = Storage::getInstance().getDisplayOptions().buttonLayoutCustomOptions.paramsRight;
     prevOrientation = Storage::getInstance().getDisplayOptions().buttonLayoutOrientation;
+    prevUserLayoutRevision = LayoutManager::getInstance().getUserLayoutRevision();
 
     // we cannot look at macro options enabled, pull the pins
     
@@ -102,7 +103,7 @@ int8_t ButtonLayoutScreen::update() {
         uint8_t layoutRight = Storage::getInstance().getDisplayOptions().buttonLayoutRight;
         uint8_t buttonLayoutOrientation = Storage::getInstance().getDisplayOptions().buttonLayoutOrientation;
         bool inputHistoryEnabled = Storage::getInstance().getDisplayOptions().inputHistoryEnabled;
-        if ((prevLayoutLeft != layoutLeft) || (prevLayoutRight != layoutRight) || (isInputHistoryEnabled != inputHistoryEnabled) || compareCustomLayouts() || (prevOrientation != buttonLayoutOrientation)) {
+        if ((prevLayoutLeft != layoutLeft) || (prevLayoutRight != layoutRight) || (isInputHistoryEnabled != inputHistoryEnabled) || compareCustomLayouts() || (prevOrientation != buttonLayoutOrientation) || (prevUserLayoutRevision != LayoutManager::getInstance().getUserLayoutRevision())) {
             shutdown();
             init();
         }
@@ -334,6 +335,7 @@ GPWidget* ButtonLayoutScreen::pushElement(GPButtonLayout element) {
         button->setAngle(element.parameters.angleStart);
         button->setAngleEnd(element.parameters.angleEnd);
         button->setClosed(element.parameters.closed);
+        button->setIcon(element.parameters.icon);
 
         if (element.elementType == GP_ELEMENT_DIR_BUTTON) button->setInputDirection(true);
 

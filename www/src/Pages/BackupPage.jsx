@@ -16,6 +16,10 @@ const API_BINDING = {
 		get: WebApi.getDisplayOptions,
 		set: WebApi.setDisplayOptions,
 	},
+	displayLayout: {
+		get: WebApi.getDisplayLayout,
+		set: WebApi.setDisplayLayout,
+	},
 	splash: {
 		get: WebApi.getSplashImage,
 		set: WebApi.setSplashImage,
@@ -169,7 +173,11 @@ export default function BackupPage() {
 			let filteredData = {};
 			for (const [key, value] of Object.entries(importOptions)) {
 				if (value && fileData[key] !== undefined) {
-					const validData = validateValues(optionState[key], fileData[key]);
+					// the display layout is replaced as a whole so a shorter element list is not padded with old elements
+					const validData =
+						key === 'displayLayout'
+							? fileData[key]
+							: validateValues(optionState[key], fileData[key]);
 					filteredData[key] = validData;
 				}
 			}

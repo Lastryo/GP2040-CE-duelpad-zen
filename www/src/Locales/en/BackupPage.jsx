@@ -16,4 +16,5 @@ export default {
 	'api-addons-text': 'Add-Ons',
 	'api-heTrigger-text': 'Hall Effect Trigger',
 	'api-splash-text': 'Splash Image',
+	'api-displayLayout-text': 'Display Layout (Editor)',
 };

@@ -4,6 +4,7 @@ export default {
 	'config-label': 'Configuration',
 	'custom-theme-label': 'Custom LED Theme',
 	'display-config-label': 'Display Configuration',
+	'display-layout-editor-label': 'Display Layout Editor',
 	'docs-label': 'Documentation',
 	'github-label': 'GitHub',
 	'home-label': 'Home',

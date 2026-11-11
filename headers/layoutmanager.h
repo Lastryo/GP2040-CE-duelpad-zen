@@ -24,6 +24,7 @@ typedef struct {
     uint16_t angleStart;
     uint16_t angleEnd;
     uint16_t closed;
+    uint16_t icon; // 0 = automatic, 255 = hidden, otherwise GPButtonIcon id
 } GPButtonParameters;
 
 typedef struct {
@@ -47,6 +48,11 @@ class LayoutManager {
         }
 
         LayoutList getLayoutA();
+        LayoutList drawUserDefined();
+
+        // bumped whenever the user-defined layout changes, so the screen can rebuild
+        uint32_t getUserLayoutRevision() const { return userLayoutRevision; }
+        void bumpUserLayoutRevision() { userLayoutRevision++; }
         LayoutList getLayoutB();
 
         std::string getLayoutAName();
@@ -157,6 +163,8 @@ class LayoutManager {
         LayoutManager(){}
 
         std::string getLayoutNameByID();
+    private:
+        uint32_t userLayoutRevision = 0;
 };
 
 #endif

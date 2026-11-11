@@ -915,7 +915,7 @@ std::string getButtonLayoutDefs()
 
     for (layoutCtr = _ButtonLayout_MIN; layoutCtr < _ButtonLayout_ARRAYSIZE; layoutCtr++) {
         LayoutManager::LayoutList leftLayout = LayoutManager::getInstance().getLeftLayout((ButtonLayout)layoutCtr);
-        if ((leftLayout.size() > 0) || (layoutCtr == ButtonLayout::BUTTON_LAYOUT_BLANKA)) writeDoc(doc, "buttonLayout", LayoutManager::getInstance().getButtonLayoutName((ButtonLayout)layoutCtr), layoutCtr);
+        if ((leftLayout.size() > 0) || (layoutCtr == ButtonLayout::BUTTON_LAYOUT_BLANKA) || (layoutCtr == ButtonLayout::BUTTON_LAYOUT_USER_DEFINED_A)) writeDoc(doc, "buttonLayout", LayoutManager::getInstance().getButtonLayoutName((ButtonLayout)layoutCtr), layoutCtr);
     }
 
     for (layoutCtr = _ButtonLayoutRight_MIN; layoutCtr < _ButtonLayoutRight_ARRAYSIZE; layoutCtr++) {
@@ -924,6 +924,83 @@ std::string getButtonLayoutDefs()
     }
 
     return serialize_json(doc);
+}
+
+// Display layout editor
+// Elements are sent as compact arrays to stay well inside the 16k POST/JSON buffers:
+// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon]
+#define DISPLAY_LAYOUT_ELEMENT_FIELDS 13
+#define DISPLAY_LAYOUT_MAX_ELEMENTS (sizeof(DisplayOptions::userLayoutElements) / sizeof(DisplayOptions::userLayoutElements[0]))
+
+std::string getDisplayLayout()
+{
+    const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
+    const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_ARRAY_SIZE(DISPLAY_LAYOUT_MAX_ELEMENTS)
+        + DISPLAY_LAYOUT_MAX_ELEMENTS * JSON_ARRAY_SIZE(DISPLAY_LAYOUT_ELEMENT_FIELDS) + 256;
+    DynamicJsonDocument doc(capacity);
+
+    doc["active"] = (displayOptions.buttonLayout == BUTTON_LAYOUT_USER_DEFINED_A);
+    doc["maxElements"] = DISPLAY_LAYOUT_MAX_ELEMENTS;
+    JsonArray elements = doc.createNestedArray("elements");
+    for (pb_size_t i = 0; i < displayOptions.userLayoutElements_count; i++) {
+        const DisplayLayoutElement& e = displayOptions.userLayoutElements[i];
+        JsonArray item = elements.createNestedArray();
+        item.add((uint32_t)e.elementType);
+        item.add(e.x1); item.add(e.y1); item.add(e.x2); item.add(e.y2);
+        item.add(e.stroke); item.add(e.fill); item.add(e.value); item.add(e.shape);
+        item.add(e.angleStart); item.add(e.angleEnd); item.add(e.closed); item.add(e.icon);
+    }
+    return serialize_json(doc);
+}
+
+// body: { "elements": [[...], ...], "activate": bool, "preview": bool }
+std::string setDisplayLayout()
+{
+    DynamicJsonDocument doc = get_post_data();
+    DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
+
+    JsonArrayConst elements = doc["elements"].as<JsonArrayConst>();
+    if (!elements.isNull()) {
+        pb_size_t count = 0;
+        for (JsonArrayConst item : elements) {
+            if (count >= DISPLAY_LAYOUT_MAX_ELEMENTS) break;
+            if (item.size() < DISPLAY_LAYOUT_ELEMENT_FIELDS) continue;
+            uint32_t type = item[0] | 0u;
+            // only drawable element types are accepted
+            if (type < GP_ELEMENT_BTN_BUTTON || type > GP_ELEMENT_SHAPE || type == GP_ELEMENT_LABEL) continue;
+
+            DisplayLayoutElement& e = displayOptions.userLayoutElements[count];
+            e = DisplayLayoutElement_init_zero;
+            e.has_elementType = true; e.elementType = (GPElement)type;
+            e.has_x1 = true;         e.x1 = item[1] | 0u;
+            e.has_y1 = true;         e.y1 = item[2] | 0u;
+            e.has_x2 = true;         e.x2 = item[3] | 0u;
+            e.has_y2 = true;         e.y2 = item[4] | 0u;
+            e.has_stroke = true;     e.stroke = item[5] | 0u;
+            e.has_fill = true;       e.fill = item[6] | 0u;
+            e.has_value = true;      e.value = item[7] | 0u;
+            e.has_shape = true;      e.shape = item[8] | 0u;
+            e.has_angleStart = true; e.angleStart = item[9] | 0u;
+            e.has_angleEnd = true;   e.angleEnd = item[10] | 0u;
+            e.has_closed = true;     e.closed = item[11] | 0u;
+            e.has_icon = true;       e.icon = item[12] | 0u;
+            count++;
+        }
+        displayOptions.userLayoutElements_count = count;
+    }
+
+    if (doc["activate"] | false) {
+        displayOptions.has_buttonLayout = true;
+        displayOptions.buttonLayout = BUTTON_LAYOUT_USER_DEFINED_A;
+    }
+
+    LayoutManager::getInstance().bumpUserLayoutRevision();
+
+    if (!(doc["preview"] | false)) {
+        EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
+    }
+
+    return getDisplayLayout();
 }
 
 std::string getButtonLayouts()
@@ -2604,6 +2681,8 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getGamepadOptions", getGamepadOptions },
     { "/api/getButtonLayoutDefs", getButtonLayoutDefs },
     { "/api/getButtonLayouts", getButtonLayouts },
+    { "/api/getDisplayLayout", getDisplayLayout },
+    { "/api/setDisplayLayout", setDisplayLayout },
     { "/api/getLedOptions", getLedOptions },
     { "/api/getPinMappings", getPinMappings },
     { "/api/getProfileOptions", getProfileOptions },

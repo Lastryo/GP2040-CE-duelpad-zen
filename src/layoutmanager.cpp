@@ -6,6 +6,10 @@
 LayoutManager::LayoutList LayoutManager::getLayoutA() {
     const DisplayOptions& options = Storage::getInstance().getDisplayOptions();
     uint16_t layoutLeft = options.buttonLayout;
+    if (layoutLeft == BUTTON_LAYOUT_USER_DEFINED_A) {
+        // the user layout covers the whole screen and ignores orientation
+        return drawUserDefined();
+    }
     if (options.buttonLayoutOrientation != BUTTON_ORIENTATION_DEFAULT) {
         uint16_t layoutRight = options.buttonLayoutRight;
         LayoutManager::LayoutList rightLayout = getRightLayout(layoutRight);
@@ -22,6 +26,9 @@ LayoutManager::LayoutList LayoutManager::getLayoutA() {
 LayoutManager::LayoutList LayoutManager::getLayoutB() {
     const DisplayOptions& options = Storage::getInstance().getDisplayOptions();
     uint16_t layoutRight = options.buttonLayoutRight;
+    if (options.buttonLayout == BUTTON_LAYOUT_USER_DEFINED_A) {
+        return {};
+    }
     if (options.buttonLayoutOrientation != BUTTON_ORIENTATION_DEFAULT) {
         uint16_t layoutLeft = options.buttonLayout;
         LayoutManager::LayoutList leftLayout = getLeftLayout(layoutLeft);
@@ -129,6 +136,8 @@ LayoutManager::LayoutList LayoutManager::getLeftLayout(uint16_t index) {
             return drawGitadoraStrumA();
         case BUTTON_LAYOUT_BOARD_DEFINED_A:
             return drawBoardDefinedA();
+        case BUTTON_LAYOUT_USER_DEFINED_A:
+            return drawUserDefined();
         case BUTTON_LAYOUT_BANDHERO_FRET_A:
             return drawBandHeroFretA();
         case BUTTON_LAYOUT_BANDHERO_STRUM_A:
@@ -697,6 +706,32 @@ LayoutManager::LayoutList LayoutManager::draw6GAWDAllButtonRight()
 LayoutManager::LayoutList LayoutManager::draw6GAWDAllButtonPlusRight()
 {
     return BUTTON_GROUP_6GAWD_ALLBUTTONPLUS_B;
+}
+
+LayoutManager::LayoutList LayoutManager::drawUserDefined()
+{
+    const DisplayOptions& options = Storage::getInstance().getDisplayOptions();
+    LayoutList layout;
+    layout.reserve(options.userLayoutElements_count);
+    for (pb_size_t i = 0; i < options.userLayoutElements_count; i++) {
+        const DisplayLayoutElement& e = options.userLayoutElements[i];
+        GPButtonLayout element;
+        element.elementType = e.elementType;
+        element.parameters.x1 = e.x1;
+        element.parameters.y1 = e.y1;
+        element.parameters.x2 = e.x2;
+        element.parameters.y2 = e.y2;
+        element.parameters.stroke = e.stroke;
+        element.parameters.fill = e.fill;
+        element.parameters.value = e.value;
+        element.parameters.shape = e.shape;
+        element.parameters.angleStart = e.angleStart;
+        element.parameters.angleEnd = e.angleEnd;
+        element.parameters.closed = e.closed;
+        element.parameters.icon = e.icon;
+        layout.push_back(element);
+    }
+    return layout;
 }
 
 LayoutManager::LayoutList LayoutManager::drawBlankA()

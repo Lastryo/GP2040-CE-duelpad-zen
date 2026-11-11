@@ -229,6 +229,24 @@ message ProfileOptions
     repeated GpioMappings gpioMappingsSets = 2 [(nanopb).max_count = 5];
 }
 
+message DisplayLayoutElement
+{
+    optional GPElement elementType = 1;
+    optional uint32 x1 = 2;
+    optional uint32 y1 = 3;
+    optional uint32 x2 = 4;
+    optional uint32 y2 = 5;
+    optional uint32 stroke = 6;
+    optional uint32 fill = 7;
+    optional uint32 value = 8;
+    optional uint32 shape = 9;
+    optional uint32 angleStart = 10;
+    optional uint32 angleEnd = 11;
+    optional uint32 closed = 12;
+    // 0 = automatic (by input mode), 255 = hidden, otherwise a GPButtonIcon id
+    optional uint32 icon = 13;
+}
+
 message DisplayOptions
 {
     optional bool enabled = 1;
@@ -271,6 +289,9 @@ message DisplayOptions
     optional uint32 inputHistoryRow = 30;
 
     optional bool buttonIcons = 31;
+
+    // layout drawn when buttonLayout == BUTTON_LAYOUT_USER_DEFINED_A (edited in Web Config)
+    repeated DisplayLayoutElement userLayoutElements = 32 [(nanopb).max_count = 40];
 }
 
 message LEDOptions

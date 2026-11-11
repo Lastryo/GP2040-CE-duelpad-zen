@@ -33,6 +33,7 @@ export default {
 			BUTTON_LAYOUT_GITADORA_FRET_A: 'Gitadora Fret',
 			BUTTON_LAYOUT_GITADORA_STRUM_A: 'Gitadora Strum',
 			BUTTON_LAYOUT_BOARD_DEFINED_A: 'Board Defined',
+			BUTTON_LAYOUT_USER_DEFINED_A: 'User Defined (Layout Editor)',
 			BUTTON_LAYOUT_CUSTOMA: 'Custom',
 			BUTTON_LAYOUT_BANDHERO_FRET_A: 'GH/RB Fret',
 			BUTTON_LAYOUT_BANDHERO_STRUM_A: 'GH/RB Strum',
