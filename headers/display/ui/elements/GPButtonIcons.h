@@ -125,6 +125,35 @@ static inline const char* getButtonNameForMode(InputMode mode, uint8_t index) {
     }
 }
 
+// Groups of input modes for per-mode button text
+typedef enum {
+    GP_BUTTON_MODE_GROUP_PLAYSTATION = 0,
+    GP_BUTTON_MODE_GROUP_XBOX = 1,
+    GP_BUTTON_MODE_GROUP_NINTENDO = 2,
+    GP_BUTTON_MODE_GROUP_OTHER = 3,
+    GP_BUTTON_MODE_GROUP_COUNT = 4,
+} GPButtonModeGroup;
+
+static inline GPButtonModeGroup getButtonModeGroup(InputMode mode) {
+    switch (mode) {
+        case INPUT_MODE_PS3:
+        case INPUT_MODE_PS4:
+        case INPUT_MODE_PS5:
+        case INPUT_MODE_P5GENERAL:
+        case INPUT_MODE_PSCLASSIC:
+            return GP_BUTTON_MODE_GROUP_PLAYSTATION;
+        case INPUT_MODE_XINPUT:
+        case INPUT_MODE_XBONE:
+        case INPUT_MODE_XBOXORIGINAL:
+            return GP_BUTTON_MODE_GROUP_XBOX;
+        case INPUT_MODE_SWITCH:
+        case INPUT_MODE_SWITCH_PRO:
+            return GP_BUTTON_MODE_GROUP_NINTENDO;
+        default:
+            return GP_BUTTON_MODE_GROUP_OTHER;
+    }
+}
+
 static inline int8_t buttonNameIndexFromAction(GpioAction action) {
     switch (action) {
         case GpioAction::BUTTON_PRESS_B1: return 0;

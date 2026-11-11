@@ -929,17 +929,18 @@ std::string getButtonLayoutDefs()
 
 // Display layout editor
 // Elements are sent as compact arrays to stay well inside the 16k POST/JSON buffers:
-// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon, text, textFont]
-// (text and textFont are optional when reading, so files from earlier editor versions still load)
+// [elementType, x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon, text, textFont,
+//  textPerMode, textPlayStation, textXbox, textNintendo, textOther]
+// (everything after icon is optional when reading, so files from earlier editor versions still load)
 #define DISPLAY_LAYOUT_ELEMENT_FIELDS 13
-#define DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT 15
+#define DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT 20
 #define DISPLAY_LAYOUT_MAX_ELEMENTS (sizeof(DisplayOptions::userLayoutElements) / sizeof(DisplayOptions::userLayoutElements[0]))
 
 std::string getDisplayLayout()
 {
     const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
     const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_ARRAY_SIZE(DISPLAY_LAYOUT_MAX_ELEMENTS)
-        + DISPLAY_LAYOUT_MAX_ELEMENTS * (JSON_ARRAY_SIZE(DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT) + 3 * sizeof(DisplayLayoutElement::text)) + 256;
+        + DISPLAY_LAYOUT_MAX_ELEMENTS * (JSON_ARRAY_SIZE(DISPLAY_LAYOUT_ELEMENT_FIELDS_WITH_TEXT) + 5 * 3 * sizeof(DisplayLayoutElement::text)) + 256;
     DynamicJsonDocument doc(capacity);
 
     doc["active"] = (displayOptions.buttonLayout == BUTTON_LAYOUT_USER_DEFINED_A);
@@ -954,6 +955,11 @@ std::string getDisplayLayout()
         item.add(e.angleStart); item.add(e.angleEnd); item.add(e.closed); item.add(e.icon);
         item.add(gpTextToUtf8(e.text)); // copied into the document
         item.add(e.textFont);
+        item.add(e.textPerMode ? 1 : 0);
+        item.add(gpTextToUtf8(e.textPlayStation));
+        item.add(gpTextToUtf8(e.textXbox));
+        item.add(gpTextToUtf8(e.textNintendo));
+        item.add(gpTextToUtf8(e.textOther));
     }
     return serialize_json(doc);
 }
@@ -994,6 +1000,11 @@ std::string setDisplayLayout()
             e.has_text = true;
             e.has_textFont = true;   e.textFont = item[14] | 0u;
             if (e.textFont > 2) e.textFont = 0;
+            e.has_textPerMode = true; e.textPerMode = (item[15] | 0u) != 0;
+            gpTextFromUtf8(item[16] | "", e.textPlayStation, sizeof(e.textPlayStation)); e.has_textPlayStation = true;
+            gpTextFromUtf8(item[17] | "", e.textXbox, sizeof(e.textXbox));               e.has_textXbox = true;
+            gpTextFromUtf8(item[18] | "", e.textNintendo, sizeof(e.textNintendo));       e.has_textNintendo = true;
+            gpTextFromUtf8(item[19] | "", e.textOther, sizeof(e.textOther));             e.has_textOther = true;
             count++;
         }
         displayOptions.userLayoutElements_count = count;

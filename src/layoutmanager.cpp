@@ -731,6 +731,11 @@ LayoutManager::LayoutList LayoutManager::drawUserDefined()
         element.parameters.icon = e.icon;
         element.parameters.text = e.text;
         element.parameters.textFont = e.textFont;
+        element.parameters.textPerMode = e.textPerMode;
+        element.parameters.modeTexts[0] = e.textPlayStation;
+        element.parameters.modeTexts[1] = e.textXbox;
+        element.parameters.modeTexts[2] = e.textNintendo;
+        element.parameters.modeTexts[3] = e.textOther;
         layout.push_back(element);
     }
     return layout;

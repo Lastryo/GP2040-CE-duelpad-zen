@@ -241,11 +241,20 @@ void GPButton::draw() {
     GPButtonIcon icon = GP_ICON_NONE;
     const char* text = nullptr;
 
+    // Text per input mode: the text set for the active mode's group, or the button's standard name
+    // for that mode (R1 / RB / R ..., face buttons as icons when they fit) when none is set.
+    bool showName = (this->_icon == GP_BUTTON_ICON_NAME);
     if (this->_icon == GP_BUTTON_ICON_TEXT) {
-        // custom text from the layout editor
-        text = this->_text.c_str();
-    } else if (this->_icon == GP_BUTTON_ICON_NAME) {
-        // button name for the current input mode (R1 / RB / R ...), face buttons as icons when they fit
+        if (!this->_textPerMode) {
+            text = this->_text.c_str(); // the same text in every mode
+        } else {
+            const std::string& modeText = this->_modeTexts[getButtonModeGroup(Storage::getInstance().getGamepadOptions().inputMode)];
+            if (!modeText.empty()) text = modeText.c_str();
+            else showName = true;
+        }
+    }
+
+    if (showName) {
         InputMode mode = Storage::getInstance().getGamepadOptions().inputMode;
         int8_t index = buttonNameIndex(pinMappings);
         if (index >= 0) {

@@ -7,7 +7,7 @@ export default {
 	'show-grid': 'Grid',
 	'simulate-pressed': 'Show selected as pressed',
 	'auto-icons': 'Automatic button icons',
-	'preview-mode': 'Icons for',
+	'preview-mode': 'Input mode',
 	'keyboard-hint':
 		'Click the screen and use arrow keys to move the selected element (Shift = 5 px), Delete to remove it.',
 	'properties-header': 'Element {{index}}',
@@ -15,8 +15,8 @@ export default {
 	duplicate: 'Duplicate',
 	delete: 'Delete',
 	clear: 'Clear all',
-	'names-all': 'Use button names on all buttons',
-	'names-applied': 'All buttons now show their name for the active input mode.',
+	'names-all': 'Per-mode text on all buttons',
+	'names-applied': 'All buttons now have their own text per input mode (standard button names where nothing is set).',
 	'import-current': 'Load current screen layout',
 	'export-file': 'Export file',
 	'import-file': 'Import file',
@@ -40,8 +40,15 @@ export default {
 	'text-hint':
 		'Up to 16 characters: Latin letters, digits, punctuation and the symbol buttons (arrows, PlayStation shapes). The small 3x5 font shows letters in uppercase. On buttons the automatic font is 5x7 when the text fits inside with a pixel to spare, otherwise 3x5.',
 	'insert-symbol': 'Insert symbol',
-	'name-hint':
-		'Shows the name of the button in the active input mode: R1 on PlayStation, RB on Xbox, R on Switch, 6 in Generic HID; arrows for the D-pad, shape or letter icons for face buttons. Use "Icons for" above the screen to preview other modes.',
+	'per-mode-hint':
+		'Each group of input modes has its own text. The field edits the group of the input mode chosen under the screen (or click a group below). Empty = the standard name of the button in that mode: R1 on PlayStation, RB on Xbox, R on Switch, shape or letter icons for face buttons, arrows for the D-pad.',
+	'edit-group': 'Edit and preview this group',
+	'mode-groups': {
+		playstation: 'PlayStation',
+		xbox: 'Xbox',
+		nintendo: 'Nintendo',
+		other: 'Other',
+	},
 	fonts: {
 		auto: 'Automatic',
 		tiny: 'Small 3x5',
@@ -67,7 +74,6 @@ export default {
 	icons: {
 		auto: 'Automatic (by input mode)',
 		hidden: 'None',
-		name: 'Button name (by input mode)',
 		text: 'Text',
 		cross: 'Cross ✕',
 		circle: 'Circle ○',
@@ -99,6 +105,8 @@ export default {
 		outline: 'Outline',
 		filled: 'Filled',
 		closed: 'Closed',
+		'all-modes': 'For all modes (same text in every input mode)',
+		'text-for': 'Text for {{group}} modes',
 		text: 'Text',
 		font: 'Font',
 		'white-text': 'White text',

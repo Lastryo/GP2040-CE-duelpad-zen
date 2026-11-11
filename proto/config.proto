@@ -249,6 +249,13 @@ message DisplayLayoutElement
     optional string text = 14 [(nanopb).max_size = 17];
     // font of button text: 0 = automatic, 1 = small 3x5, 2 = regular 5x7
     optional uint32 textFont = 15;
+    // icon == 254 (text): false = "text" in every input mode,
+    // true = per input-mode-group text below; an empty one shows the button's standard name for that mode
+    optional bool textPerMode = 16;
+    optional string textPlayStation = 17 [(nanopb).max_size = 17];
+    optional string textXbox = 18 [(nanopb).max_size = 17];
+    optional string textNintendo = 19 [(nanopb).max_size = 17];
+    optional string textOther = 20 [(nanopb).max_size = 17];
 }
 
 message DisplayOptions

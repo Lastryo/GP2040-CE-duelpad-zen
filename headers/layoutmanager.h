@@ -27,6 +27,8 @@ typedef struct {
     uint16_t icon; // 0 = automatic, 254 = text, 255 = hidden, otherwise GPButtonIcon id
     const char* text; // label / button text, points into the stored display options
     uint16_t textFont; // button text: 0 = automatic, 1 = small 3x5, 2 = regular 5x7
+    uint16_t textPerMode; // button text differs per input mode group
+    const char* modeTexts[4]; // per GPButtonModeGroup, may be null or empty
 } GPButtonParameters;
 
 typedef struct {

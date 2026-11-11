@@ -22,6 +22,8 @@ class GPButton : public GPWidget {
         GPButton* setIcon(uint16_t icon) { this->_icon = icon; return this; }
         GPButton* setText(const char* text) { this->_text = text ? text : ""; return this; }
         GPButton* setTextFont(uint16_t textFont) { this->_textFont = textFont; return this; }
+        GPButton* setTextPerMode(bool perMode) { this->_textPerMode = perMode; return this; }
+        GPButton* setModeText(uint8_t group, const char* text) { if (group < 4) this->_modeTexts[group] = text ? text : ""; return this; }
     private:
         int8_t buttonNameIndex(GpioMappingInfo* pinMappings);
         uint16_t _sizeX = 0;
@@ -36,6 +38,8 @@ class GPButton : public GPWidget {
         uint16_t _icon = 0; // 0 = automatic, 254 = text, 255 = hidden, otherwise GPButtonIcon id
         std::string _text;  // drawn when _icon == GP_BUTTON_ICON_TEXT
         uint16_t _textFont = 0; // 0 = automatic, 1 = small 3x5, 2 = regular 5x7
+        bool _textPerMode = false; // use _modeTexts for the active input mode group
+        std::string _modeTexts[4]; // per GPButtonModeGroup
 };
 
 #endif

@@ -189,17 +189,42 @@ const toInt = (v, min = 0, max = 65535) => {
 	return Math.min(max, Math.max(min, n));
 };
 
-// button text font: 0 = automatic, 1 = small 3x5, 2 = regular 5x7
-const fromArray = (arr) => ({
-	...Object.fromEntries(FIELDS.map((field, i) => [field, toInt(arr?.[i] ?? 0)])),
-	text: sanitizeText(arr?.[FIELDS.length]),
-	textFont: toInt(arr?.[FIELDS.length + 1] ?? 0, 0, 2),
-});
+// Text of buttons can differ per group of input modes (must match GPButtonIcons.h getButtonModeGroup)
+const MODE_GROUPS = [
+	{ key: 'playstation', preview: 'INPUT_MODE_PS5', modes: ['INPUT_MODE_PS3', 'INPUT_MODE_PS4', 'INPUT_MODE_PS5', 'INPUT_MODE_P5GENERAL', 'INPUT_MODE_PSCLASSIC'] },
+	{ key: 'xbox', preview: 'INPUT_MODE_XINPUT', modes: ['INPUT_MODE_XINPUT', 'INPUT_MODE_XBONE', 'INPUT_MODE_XBOXORIGINAL'] },
+	{ key: 'nintendo', preview: 'INPUT_MODE_SWITCH', modes: ['INPUT_MODE_SWITCH', 'INPUT_MODE_SWITCH_PRO'] },
+	{ key: 'other', preview: 'INPUT_MODE_GENERIC', modes: [] },
+];
+const modeGroup = (mode) => {
+	const index = MODE_GROUPS.findIndex((g) => g.modes.some((name) => InputMode[name] === mode));
+	return index < 0 ? MODE_GROUPS.length - 1 : index;
+};
+
+// [...FIELDS, text, textFont (0 auto, 1 3x5, 2 5x7), textPerMode, textPlayStation, textXbox, textNintendo, textOther]
+const fromArray = (arr) => {
+	const n = FIELDS.length;
+	const el = {
+		...Object.fromEntries(FIELDS.map((field, i) => [field, toInt(arr?.[i] ?? 0)])),
+		text: sanitizeText(arr?.[n]),
+		textFont: toInt(arr?.[n + 1] ?? 0, 0, 2),
+		textPerMode: toInt(arr?.[n + 2] ?? 0, 0, 1),
+		modeTexts: [0, 1, 2, 3].map((g) => sanitizeText(arr?.[n + 3 + g])),
+	};
+	// "button name" from an earlier editor version is per-mode text with nothing overridden
+	if (el.icon === ICON_NAME) Object.assign(el, { icon: ICON_TEXT, textPerMode: 1 });
+	return el;
+};
 const toArray = (el) => [
 	...FIELDS.map((field) => toInt(el[field])),
 	sanitizeText(el.text),
 	toInt(el.textFont ?? 0, 0, 2),
+	el.textPerMode ? 1 : 0,
+	...[0, 1, 2, 3].map((g) => sanitizeText(el.modeTexts?.[g])),
 ];
+
+// default for buttons: their own text in every input mode, starting with the standard button names
+const PER_MODE_TEXT = { icon: ICON_TEXT, textPerMode: 1 };
 
 const fromLayoutElement = (item) => ({
 	type: toInt(item.elementType),
@@ -217,6 +242,9 @@ const fromLayoutElement = (item) => ({
 	icon: ICON_AUTO,
 	text: '',
 	textFont: 0,
+	textPerMode: 0,
+	modeTexts: ['', '', '', ''],
+	...(BUTTON_TYPES.includes(toInt(item.elementType)) ? PER_MODE_TEXT : {}),
 });
 
 const isLever = (el) => el.type === GPElement.GP_ELEMENT_LEVER;
@@ -323,6 +351,12 @@ const faceIcon = (inputMode, faceIndex) => {
 	return family ? ICON_BY_ID[ICON_FAMILIES[family][faceIndex]] : null;
 };
 
+// standard name of a button in an input mode (what an empty per-mode text shows)
+const standardName = (el, inputMode, pinActions) => {
+	const index = buttonNameIndex(el, pinActions);
+	return index < 0 ? '' : BUTTON_NAMES[NAME_FAMILY[inputMode] || 'gp2040'][index];
+};
+
 // What GPButton::draw() puts inside a button: { icon } or { text, font }, plus where
 const resolveContent = (el, { buttonIcons, inputMode, pinActions }) => {
 	if (!isButton(el) || el.icon === ICON_HIDDEN) return null;
@@ -331,8 +365,14 @@ const resolveContent = (el, { buttonIcons, inputMode, pinActions }) => {
 	const withText = (text) =>
 		text ? { place, text, font: buttonTextFont(text, el.textFont ?? 0, place) } : null;
 
-	if (el.icon === ICON_TEXT) return withText(el.text);
-	if (el.icon === ICON_NAME) {
+	let showName = el.icon === ICON_NAME;
+	if (el.icon === ICON_TEXT) {
+		if (!el.textPerMode) return withText(el.text);
+		const modeText = el.modeTexts?.[modeGroup(inputMode)];
+		if (modeText) return withText(modeText);
+		showName = true;
+	}
+	if (showName) {
 		const index = buttonNameIndex(el, pinActions);
 		if (index < 0) return null;
 		const icon = index < 4 && place.room >= 4 ? faceIcon(inputMode, index) : null;
@@ -691,6 +731,9 @@ export default function DisplayLayoutEditorPage() {
 			icon: ICON_AUTO,
 			text: '',
 			textFont: 0,
+			textPerMode: 0,
+			modeTexts: ['', '', '', ''],
+			...(BUTTON_TYPES.includes(type) ? PER_MODE_TEXT : {}),
 		};
 		if (type === GPElement.GP_ELEMENT_LABEL) {
 			Object.assign(base, { x1: 4, y1: 4, value: FONT_TINY, text: 'TEXT' });
@@ -743,7 +786,7 @@ export default function DisplayLayoutEditorPage() {
 	};
 
 	const useNamesOnAllButtons = () => {
-		updateElements((prev) => prev.map((el) => (isButton(el) ? { ...el, icon: ICON_NAME } : el)));
+		updateElements((prev) => prev.map((el) => (isButton(el) ? { ...el, ...PER_MODE_TEXT } : el)));
 		showMessage('info', t('DisplayLayoutEditor:names-applied'));
 	};
 
@@ -885,14 +928,14 @@ export default function DisplayLayoutEditorPage() {
 	};
 
 	const textInputRef = useRef(null);
-	const insertSymbol = (symbol) => {
+	const insertSymbol = (symbol, binding) => {
 		const input = textInputRef.current;
-		const text = selectedEl.text;
+		const text = binding.value;
 		// selection positions are UTF-16 offsets; all supported characters are single code units
 		const start = input?.selectionStart ?? text.length;
 		const end = input?.selectionEnd ?? text.length;
 		const next = sanitizeText(text.slice(0, start) + symbol + text.slice(end));
-		updateSelected({ text: next });
+		binding.set(next);
 		window.requestAnimationFrame(() => {
 			if (!input) return;
 			input.focus();
@@ -901,16 +944,24 @@ export default function DisplayLayoutEditorPage() {
 		});
 	};
 
-	const textField = (el, md = 6) => (
+	// binding: { value, set, label?, placeholder? }; defaults to the element's common text
+	const textField = (
+		el,
+		binding = { value: el.text, set: (text) => updateSelected({ text }) },
+		md = 6,
+	) => (
 		<Form.Group as={Col} xs={12} md={md} className="mb-2">
-			<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.text')}</Form.Label>
+			<Form.Label className="small mb-0">
+				{binding.label || t('DisplayLayoutEditor:fields.text')}
+			</Form.Label>
 			<Form.Control
 				ref={textInputRef}
 				size="sm"
 				type="text"
 				maxLength={TEXT_MAX_LENGTH}
-				value={el.text}
-				onChange={(e) => updateSelected({ text: sanitizeText(e.target.value) })}
+				value={binding.value}
+				placeholder={binding.placeholder}
+				onChange={(e) => binding.set(sanitizeText(e.target.value))}
 			/>
 			<div className="d-flex flex-wrap gap-1 mt-1">
 				{SYMBOLS.map((symbol) => (
@@ -920,8 +971,8 @@ export default function DisplayLayoutEditorPage() {
 						variant="outline-secondary"
 						className="dle-symbol"
 						title={t('DisplayLayoutEditor:insert-symbol')}
-						disabled={el.text.length >= TEXT_MAX_LENGTH}
-						onClick={() => insertSymbol(symbol)}
+						disabled={binding.value.length >= TEXT_MAX_LENGTH}
+						onClick={() => insertSymbol(symbol, binding)}
 					>
 						{symbol}
 					</Button>
@@ -929,6 +980,63 @@ export default function DisplayLayoutEditorPage() {
 			</div>
 		</Form.Group>
 	);
+
+	const setPreviewGroup = (index) => {
+		if (modeGroup(inputMode) !== index) setInputMode(InputMode[MODE_GROUPS[index].preview]);
+	};
+
+	const buttonTextFields = (el) => {
+		const allModes = !el.textPerMode;
+		const group = modeGroup(inputMode);
+		const groupName = (index) => t(`DisplayLayoutEditor:mode-groups.${MODE_GROUPS[index].key}`);
+		const setModeText = (index, text) => {
+			const modeTexts = [...(el.modeTexts || ['', '', '', ''])];
+			modeTexts[index] = text;
+			updateSelected({ modeTexts });
+		};
+		return (
+			<>
+				<Col xs={12} className="mb-2">
+					<Form.Check
+						type="switch"
+						id="dle-all-modes"
+						className="small"
+						label={t('DisplayLayoutEditor:fields.all-modes')}
+						checked={allModes}
+						onChange={(e) => updateSelected({ textPerMode: e.target.checked ? 0 : 1 })}
+					/>
+				</Col>
+				{allModes
+					? textField(el)
+					: textField(el, {
+							value: el.modeTexts?.[group] || '',
+							set: (text) => setModeText(group, text),
+							label: t('DisplayLayoutEditor:fields.text-for', { group: groupName(group) }),
+							placeholder: standardName(el, inputMode, pinActions),
+						})}
+				{!allModes && (
+					<Col xs={12} className="mb-2 small">
+						{MODE_GROUPS.map((g, index) => {
+							const custom = el.modeTexts?.[index];
+							const shown = custom || standardName(el, InputMode[g.preview], pinActions) || '-';
+							return (
+								<Button
+									key={g.key}
+									size="sm"
+									variant={index === group ? 'secondary' : 'outline-secondary'}
+									className="me-1 mb-1"
+									title={t('DisplayLayoutEditor:edit-group')}
+									onClick={() => setPreviewGroup(index)}
+								>
+									{`${groupName(index)}: ${shown}${custom ? ' *' : ''}`}
+								</Button>
+							);
+						})}
+					</Col>
+				)}
+			</>
+		);
+	};
 
 	const valueField = (el) => {
 		const select = (options) => (
@@ -1201,11 +1309,16 @@ export default function DisplayLayoutEditorPage() {
 										<Form.Select
 											size="sm"
 											value={selectedEl.icon}
-											onChange={(e) => updateSelected({ icon: toInt(e.target.value, 0, 255) })}
+											onChange={(e) => {
+												const icon = toInt(e.target.value, 0, 255);
+												// switching to text starts with per-mode text unless the element already has one
+												const patch = { icon };
+												if (icon === ICON_TEXT && selectedEl.icon !== ICON_TEXT && !selectedEl.text) patch.textPerMode = 1;
+												updateSelected(patch);
+											}}
 										>
 											<option value={ICON_AUTO}>{t('DisplayLayoutEditor:icons.auto')}</option>
 											<option value={ICON_HIDDEN}>{t('DisplayLayoutEditor:icons.hidden')}</option>
-											<option value={ICON_NAME}>{t('DisplayLayoutEditor:icons.name')}</option>
 											<option value={ICON_TEXT}>{t('DisplayLayoutEditor:icons.text')}</option>
 											{ICONS.map((icon) => (
 												<option key={icon.id} value={icon.id}>
@@ -1215,8 +1328,8 @@ export default function DisplayLayoutEditorPage() {
 										</Form.Select>
 									</Form.Group>
 								)}
-								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && textField(selectedEl)}
-								{isButton(selectedEl) && (selectedEl.icon === ICON_TEXT || selectedEl.icon === ICON_NAME) && (
+								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && buttonTextFields(selectedEl)}
+								{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && (
 									<Form.Group as={Col} xs={12} md={6} className="mb-2">
 										<Form.Label className="small mb-0">{t('DisplayLayoutEditor:fields.font')}</Form.Label>
 										<Form.Select
@@ -1267,14 +1380,14 @@ export default function DisplayLayoutEditorPage() {
 									/>
 								)}
 							</div>
-							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && selectedEl.icon !== ICON_TEXT && selectedEl.icon !== ICON_NAME && (
+							{isButton(selectedEl) && iconPlacement(selectedEl)?.room < 4 && selectedEl.icon !== ICON_HIDDEN && selectedEl.icon !== ICON_TEXT && (
 								<p className="small text-warning mt-2 mb-0">{t('DisplayLayoutEditor:icon-too-small')}</p>
 							)}
 							{((isButton(selectedEl) && selectedEl.icon === ICON_TEXT) || isLabel(selectedEl)) && (
 								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:text-hint')}</p>
 							)}
-							{isButton(selectedEl) && selectedEl.icon === ICON_NAME && (
-								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:name-hint')}</p>
+							{isButton(selectedEl) && selectedEl.icon === ICON_TEXT && selectedEl.textPerMode > 0 && (
+								<p className="small text-muted mt-2 mb-0">{t('DisplayLayoutEditor:per-mode-hint')}</p>
 							)}
 						</div>
 					)}
