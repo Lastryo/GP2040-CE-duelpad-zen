@@ -82,6 +82,7 @@ const defaultValues = {
 	inputHistoryCol: 0,
 	inputHistoryRow: 7,
 	turnOffWhenSuspended: 0,
+	buttonIcons: 0,
 };
 
 let buttonLayoutDefinitions = { buttonLayout: {}, buttonLayoutRight: {} };
@@ -107,6 +108,7 @@ const schema = yup.object().shape({
 		.oneOf(ON_OFF_OPTIONS.map((o) => o.value))
 		.label('Invert Display'),
 	turnOffWhenSuspended: yup.number().label('Turn Off When Suspended'),
+	buttonIcons: yup.number().label('Button Icons'),
 	buttonLayout: buttonLayoutSchema,
 	buttonLayoutRight: buttonLayoutRightSchema,
 	buttonLayoutOrientation: yup.number().label('Layout Reversed'),
@@ -435,6 +437,22 @@ export default function DisplayConfigPage() {
 													</option>
 												))}
 											</FormSelect>
+											<div className="col-sm-3 mb-3">
+												<label className="form-label">
+													{t('DisplayConfig:form.button-icons-label')}
+												</label>
+												<Form.Check
+													label={t('DisplayConfig:form.button-icons-description')}
+													type="switch"
+													name="buttonIcons"
+													className="align-middle"
+													isInvalid={false}
+													checked={Boolean(values.buttonIcons)}
+													onChange={(e) => {
+														setFieldValue('buttonIcons', e.target.checked ? 1 : 0);
+													}}
+												/>
+											</div>
 										</Row>
 										{isButtonLayoutCustom(values) && (
 											<Row className="mb-3">

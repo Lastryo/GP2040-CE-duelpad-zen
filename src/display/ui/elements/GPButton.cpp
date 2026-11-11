@@ -1,5 +1,29 @@
 #include "GPButton.h"
 #include "GPGFX_UI_layouts.h"
+#include "GPButtonIcons.h"
+
+#include <algorithm>
+
+// Returns 0..3 for B1..B4, or -1 if this button is not a face button.
+static int8_t faceIndexFromMask(uint32_t mask) {
+    switch (mask) {
+        case GAMEPAD_MASK_B1: return 0;
+        case GAMEPAD_MASK_B2: return 1;
+        case GAMEPAD_MASK_B3: return 2;
+        case GAMEPAD_MASK_B4: return 3;
+        default: return -1;
+    }
+}
+
+static int8_t faceIndexFromAction(GpioAction action) {
+    switch (action) {
+        case GpioAction::BUTTON_PRESS_B1: return 0;
+        case GpioAction::BUTTON_PRESS_B2: return 1;
+        case GpioAction::BUTTON_PRESS_B3: return 2;
+        case GpioAction::BUTTON_PRESS_B4: return 3;
+        default: return -1;
+    }
+}
 
 void GPButton::draw() {
     // new style button:
@@ -128,6 +152,11 @@ void GPButton::draw() {
 
     state = (buttonState ? pinState : 0);
 
+    // centre and inner half-size of the shape, used for the mode icon
+    int32_t iconCenterX = -1;
+    int32_t iconCenterY = -1;
+    int32_t iconRoom = 0;
+
     // base
     if (this->_shape == GP_SHAPE_ELLIPSE) {
         uint16_t scaledSize = (uint16_t)((double)this->_sizeX * scaleX);
@@ -136,6 +165,9 @@ void GPButton::draw() {
 
         getRenderer()->drawEllipse(baseX, baseY, baseRadius, baseRadius, this->strokeColor, state);
         if (turboState) getRenderer()->drawEllipse(baseX, baseY, turboRadius, turboRadius, 1, 0);
+        iconCenterX = baseX;
+        iconCenterY = baseY;
+        iconRoom = baseRadius;
     } else if (this->_shape == GP_SHAPE_SQUARE) {
         uint16_t sizeX = (this->_sizeX) * scaleX + this->getViewport().left;
         uint16_t sizeY = (this->_sizeY) * scaleY + this->getViewport().top;
@@ -148,6 +180,11 @@ void GPButton::draw() {
 
         getRenderer()->drawRectangle(baseX, baseY, sizeX+offsetX, sizeY, this->strokeColor, state, this->_angle);
         if (turboState) getRenderer()->drawRectangle(turboX, turboY, turboX+turboW, turboY+turboH, 1, 0, this->_angle);
+        if (this->_angle == 0) {
+            iconCenterX = ((int32_t)baseX + (int32_t)(sizeX + offsetX)) / 2;
+            iconCenterY = ((int32_t)baseY + (int32_t)sizeY) / 2;
+            iconRoom = std::min((int32_t)(sizeX + offsetX) - (int32_t)baseX, (int32_t)sizeY - (int32_t)baseY) / 2;
+        }
     } else if (this->_shape == GP_SHAPE_LINE) {
         getRenderer()->drawLine(baseX, baseY, this->_sizeX, this->_sizeY, this->strokeColor, 0);
     } else if (this->_shape == GP_SHAPE_POLYGON) {
@@ -157,6 +194,11 @@ void GPButton::draw() {
 
         getRenderer()->drawPolygon(baseX, baseY, baseRadius, this->_sizeY, this->strokeColor, state, this->_angle);
         if (turboState) getRenderer()->drawPolygon(baseX, baseY, turboRadius, this->_sizeY, 1, 0, this->_angle);
+        if (this->_sizeY >= 6) { // hexagons and rounder shapes have enough room
+            iconCenterX = baseX;
+            iconCenterY = baseY;
+            iconRoom = baseRadius;
+        }
     } else if (this->_shape == GP_SHAPE_ARC) {
         uint16_t scaledSize = (uint16_t)((double)this->_sizeX * scaleX);
         uint16_t baseRadius = (uint16_t)scaledSize;
@@ -176,5 +218,41 @@ void GPButton::draw() {
 
         getRenderer()->drawPill(baseX, baseY, sizeX+offsetX, sizeY, this->strokeColor, state, this->_angle);
         if (turboState) getRenderer()->drawPill(turboX, turboY, turboX+turboW, turboY+turboH, 1, 0, this->_angle);
+        if (this->_angle == 0) {
+            iconCenterX = ((int32_t)baseX + (int32_t)(sizeX + offsetX)) / 2;
+            iconCenterY = ((int32_t)baseY + (int32_t)sizeY) / 2;
+            iconRoom = std::min((int32_t)(sizeX + offsetX) - (int32_t)baseX, (int32_t)sizeY - (int32_t)baseY) / 2;
+        }
+    }
+
+    // mode-dependent face button icon (PlayStation shapes, Xbox/Nintendo letters, ...)
+    // a 5x5 glyph needs at least a radius of 4 to sit inside the outline
+    if (iconRoom >= 4 && Storage::getInstance().getDisplayOptions().buttonIcons) {
+        int8_t faceIndex = -1;
+        if (_inputType == GP_ELEMENT_BTN_BUTTON) {
+            faceIndex = faceIndexFromMask((uint32_t)this->_inputMask);
+        } else if (_inputType == GP_ELEMENT_PIN_BUTTON && this->_inputMask >= 0 && this->_inputMask < (int32_t)NUM_BANK0_GPIOS) {
+            faceIndex = faceIndexFromAction(pinMappings[this->_inputMask].action);
+        }
+
+        if (faceIndex >= 0) {
+            GPButtonIcon icon = getButtonIconForMode(Storage::getInstance().getGamepadOptions().inputMode, (uint8_t)faceIndex);
+            if (icon != GP_ICON_NONE) {
+                const uint8_t* glyph = GP_BUTTON_ICON_GLYPHS[icon];
+                // pressed buttons are filled, so draw the icon inverted
+                uint32_t iconColor = state ? 0 : 1;
+                int32_t originX = iconCenterX - GP_BUTTON_ICON_SIZE / 2;
+                int32_t originY = iconCenterY - GP_BUTTON_ICON_SIZE / 2;
+                for (uint8_t row = 0; row < GP_BUTTON_ICON_SIZE; row++) {
+                    for (uint8_t col = 0; col < GP_BUTTON_ICON_SIZE; col++) {
+                        if (glyph[row] & (1 << (GP_BUTTON_ICON_SIZE - 1 - col))) {
+                            int32_t px = originX + col;
+                            int32_t py = originY + row;
+                            if (px >= 0 && py >= 0) getRenderer()->drawPixel((uint16_t)px, (uint16_t)py, iconColor);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

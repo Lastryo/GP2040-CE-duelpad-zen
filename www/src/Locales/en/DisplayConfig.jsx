@@ -44,6 +44,8 @@ export default {
 		'inverted-label': 'Inverted',
 		'power-management-header': 'Power Management',
 		'turn-off-when-suspended': 'Turn Off When Suspended',
+		'button-icons-label': 'Button Icons',
+		'button-icons-description': 'Show input-mode icons on face buttons (PlayStation shapes, Xbox/Nintendo letters, HID numbers)',
 		'input-history-label': 'Input History',
 		'display-state': {
 			disabled: 'Disabled',
