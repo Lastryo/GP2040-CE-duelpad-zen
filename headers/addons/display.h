@@ -70,6 +70,11 @@
 #define BUTTON_LAYOUT BUTTON_LAYOUT_STICK
 #endif
 
+// Left layout on the display; boards can default to the user layout without touching the LED layout
+#ifndef DISPLAY_BUTTON_LAYOUT
+#define DISPLAY_BUTTON_LAYOUT BUTTON_LAYOUT
+#endif
+
 #ifndef BUTTON_LAYOUT_RIGHT
 #define BUTTON_LAYOUT_RIGHT BUTTON_LAYOUT_VEWLIX
 #endif

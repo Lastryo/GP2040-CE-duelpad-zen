@@ -127,6 +127,32 @@
  #define DISPLAY_BUTTON_ICONS 1
  #define BUTTON_LAYOUT_RIGHT BUTTON_LAYOUT_BOARD_DEFINED_B
 
+ // Display layout shown by default (Web Config > Display Layout Editor export).
+ // {type, x1, y1, x2, y2, stroke, fill, value(GPIO), shape, angleStart, angleEnd, closed, icon, text, textFont, textPerMode}
+ #define DISPLAY_BUTTON_LAYOUT BUTTON_LAYOUT_USER_DEFINED_A
+ #define DEFAULT_USER_LAYOUT {\
+   {GP_ELEMENT_PIN_BUTTON, 5, 15, 9, 19, 1, 1, 0, 1, 0, 0, 0, 0, "", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 12, 15, 16, 19, 1, 1, 4, 1, 0, 0, 0, 0, "", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 111, 15, 115, 19, 1, 1, 6, 1, 0, 180, 0, 0, "", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 118, 15, 122, 19, 1, 1, 5, 1, 0, 0, 0, 0, "", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 37, 21, 5, 5, 1, 1, 7, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 21, 30, 5, 5, 1, 1, 9, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 33, 32, 5, 5, 1, 1, 10, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 44, 37, 5, 5, 1, 1, 11, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 69, 30, 5, 5, 1, 1, 18, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 81, 26, 5, 5, 1, 1, 25, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 93, 24, 5, 5, 1, 1, 27, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 105, 26, 5, 5, 1, 1, 29, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 69, 42, 5, 5, 1, 1, 19, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 81, 38, 5, 5, 1, 1, 24, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 93, 36, 5, 5, 1, 1, 26, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 105, 38, 5, 5, 1, 1, 28, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 35, 52, 4, 4, 1, 1, 3, 0, 0, 0, 0, 254, "", 0, 1},\
+   {GP_ELEMENT_PIN_BUTTON, 48, 57, 6, 6, 1, 1, 16, 0, 0, 0, 0, 254, "D", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 69, 57, 6, 6, 1, 1, 2, 0, 0, 0, 0, 254, "R", 0, 0},\
+   {GP_ELEMENT_PIN_BUTTON, 82, 52, 4, 4, 1, 1, 1, 0, 0, 0, 0, 254, "L", 0, 0}\
+}
+
  #define DEFAULT_BOARD_LAYOUT_A {\
    {GP_ELEMENT_PIN_BUTTON, {44, 18,  4,  4, 1, 0, 7,    GP_SHAPE_ELLIPSE}},\
    {GP_ELEMENT_PIN_BUTTON, {32, 27,  4,  4, 1, 1, 9,    GP_SHAPE_ELLIPSE}},\

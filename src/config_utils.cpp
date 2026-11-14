@@ -418,7 +418,7 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cSCLPin, -1);
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cAddress, DISPLAY_I2C_ADDR);
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cSpeed, I2C_SPEED);
-    INIT_UNSET_PROPERTY(config.displayOptions, buttonLayout, BUTTON_LAYOUT);
+    INIT_UNSET_PROPERTY(config.displayOptions, buttonLayout, DISPLAY_BUTTON_LAYOUT);
     INIT_UNSET_PROPERTY(config.displayOptions, buttonLayoutRight, BUTTON_LAYOUT_RIGHT);
     INIT_UNSET_PROPERTY(config.displayOptions, turnOffWhenSuspended, DISPLAY_TURN_OFF_WHEN_SUSPENDED);
     INIT_UNSET_PROPERTY(config.displayOptions, inputMode, 1);
@@ -432,6 +432,45 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryCol, INPUT_HISTORY_COL);
     INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryRow, INPUT_HISTORY_ROW);
     INIT_UNSET_PROPERTY(config.displayOptions, buttonIcons, !!DISPLAY_BUTTON_ICONS);
+
+#ifdef DEFAULT_USER_LAYOUT
+    // Repeated fields have no has_ flag: an empty user layout gets the board's default one.
+    if (config.displayOptions.userLayoutElements_count == 0) {
+        struct DefaultLayoutElement {
+            GPElement type;
+            uint32_t x1, y1, x2, y2, stroke, fill, value, shape, angleStart, angleEnd, closed, icon;
+            const char* text;
+            uint32_t textFont;
+            bool textPerMode;
+        };
+        static const DefaultLayoutElement defaults[] = DEFAULT_USER_LAYOUT;
+        const pb_size_t maxCount = sizeof(config.displayOptions.userLayoutElements) / sizeof(config.displayOptions.userLayoutElements[0]);
+        pb_size_t count = 0;
+        for (const DefaultLayoutElement& d : defaults) {
+            if (count >= maxCount) break;
+            DisplayLayoutElement& e = config.displayOptions.userLayoutElements[count++];
+            e = DisplayLayoutElement_init_zero;
+            e.has_elementType = true; e.elementType = d.type;
+            e.has_x1 = true;          e.x1 = d.x1;
+            e.has_y1 = true;          e.y1 = d.y1;
+            e.has_x2 = true;          e.x2 = d.x2;
+            e.has_y2 = true;          e.y2 = d.y2;
+            e.has_stroke = true;      e.stroke = d.stroke;
+            e.has_fill = true;        e.fill = d.fill;
+            e.has_value = true;       e.value = d.value;
+            e.has_shape = true;       e.shape = d.shape;
+            e.has_angleStart = true;  e.angleStart = d.angleStart;
+            e.has_angleEnd = true;    e.angleEnd = d.angleEnd;
+            e.has_closed = true;      e.closed = d.closed;
+            e.has_icon = true;        e.icon = d.icon;
+            e.has_text = true;        strncpy(e.text, d.text, sizeof(e.text) - 1);
+            e.has_textFont = true;    e.textFont = d.textFont;
+            e.has_textPerMode = true; e.textPerMode = d.textPerMode;
+            e.has_textPlayStation = e.has_textXbox = e.has_textNintendo = e.has_textOther = true;
+        }
+        config.displayOptions.userLayoutElements_count = count;
+    }
+#endif
 
     ButtonLayoutParamsLeft& paramsLeft = config.displayOptions.buttonLayoutCustomOptions.paramsLeft;
     INIT_UNSET_PROPERTY(paramsLeft, layout, BUTTON_LAYOUT);
