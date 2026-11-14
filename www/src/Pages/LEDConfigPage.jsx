@@ -29,6 +29,41 @@ const LED_FORMATS = [
 	{ label: 'RGBW', value: 3 },
 ];
 
+// Order must match AnimationEffects in proto/enums.proto.
+const LED_EFFECTS = [
+	{ labelKey: 'effect-static-color', value: 0 },
+	{ labelKey: 'effect-rainbow', value: 1 },
+	{ labelKey: 'effect-chase', value: 2 },
+	{ labelKey: 'effect-static-theme', value: 3 },
+	{ labelKey: 'effect-custom-theme', value: 4, requiresCustomTheme: true },
+];
+const LED_EFFECT_STATIC_THEME = 3;
+
+// Order must match the AddTheme() calls in src/animationstation/effects/statictheme.cpp.
+const STATIC_THEMES = [
+	'Static Rainbow',
+	'Xbox',
+	'Xbox (All)',
+	'Super Famicom',
+	'Super Famicom (All)',
+	'PlayStation',
+	'PlayStation (All)',
+	'Neo Geo Straight',
+	'Neo Geo Curved',
+	'Neo Geo Modern',
+	'6-Button Fighter',
+	'6-Button Fighter+',
+	'Street Fighter II',
+	'Tekken',
+	'Guilty Gear Type-A',
+	'Guilty Gear Type-B',
+	'Guilty Gear Type-C',
+	'Guilty Gear Type-D',
+	'Guilty Gear Type-E',
+	'Fightboard',
+];
+const STATIC_THEME_AUTO = 20;
+
 const PLED_LABELS = [
 	{ 0: 'PLED #1 Pin', 1: 'PLED #1 Index' },
 	{ 0: 'PLED #2 Pin', 1: 'PLED #2 Index' },
@@ -141,6 +176,8 @@ const schema = yup.object().shape({
 		.label('PLED Index 4')
 		.validateMinWhenEqualTo('pledType', 1, 0),
 	turnOffWhenSuspended: yup.number().label('Turn Off When Suspended'),
+	baseAnimationIndex: yup.number().label('Button LED Effect'),
+	themeIndex: yup.number().label('Static Theme'),
 	caseRGBType: yup.number().required().label('Case RGB Type'),
 	caseRGBCount: yup
 		.number()
@@ -423,6 +460,57 @@ export default function LEDConfigPage() {
 								/>
 							</div>
 						</Row>
+						<Row>
+							<FormSelect
+								label={t('LedConfig:rgb.led-effect-label')}
+								name="baseAnimationIndex"
+								className="form-select-sm"
+								groupClassName="col-sm-4 mb-3"
+								value={values.baseAnimationIndex}
+								error={errors.baseAnimationIndex}
+								isInvalid={errors.baseAnimationIndex}
+								onChange={(e) =>
+									setFieldValue('baseAnimationIndex', parseInt(e.target.value))
+								}
+							>
+								{LED_EFFECTS.filter(
+									(o) => !o.requiresCustomTheme || values.hasCustomTheme,
+								).map((o) => (
+									<option key={`ledEffect-option-${o.value}`} value={o.value}>
+										{t(`LedConfig:rgb.${o.labelKey}`)}
+									</option>
+								))}
+							</FormSelect>
+							{values.baseAnimationIndex === LED_EFFECT_STATIC_THEME && (
+								<FormSelect
+									label={t('LedConfig:rgb.static-theme-label')}
+									name="themeIndex"
+									className="form-select-sm"
+									groupClassName="col-sm-4 mb-3"
+									value={values.themeIndex}
+									error={errors.themeIndex}
+									isInvalid={errors.themeIndex}
+									onChange={(e) =>
+										setFieldValue('themeIndex', parseInt(e.target.value))
+									}
+								>
+									<option value={STATIC_THEME_AUTO}>
+										{t('LedConfig:rgb.static-theme-auto')}
+									</option>
+									{STATIC_THEMES.map((label, i) => (
+										<option key={`staticTheme-option-${i}`} value={i}>
+											{label}
+										</option>
+									))}
+								</FormSelect>
+							)}
+						</Row>
+						{values.baseAnimationIndex === LED_EFFECT_STATIC_THEME &&
+							values.themeIndex === STATIC_THEME_AUTO && (
+								<p className="card-text">
+									{t('LedConfig:rgb.static-theme-auto-description')}
+								</p>
+							)}
 					</Section>
 					<Section title={t('LedConfig:rgb-order.header-text')}>
 						<p className="card-text">

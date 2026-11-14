@@ -1,6 +1,7 @@
 #include "statictheme.h"
 #include "storagemanager.h"
 #include "enums.pb.h"
+#include "drivermanager.h"
 
 StaticTheme::StaticTheme(PixelMatrix &matrix) : Animation(matrix) {
 
@@ -297,6 +298,38 @@ StaticTheme::StaticTheme(PixelMatrix &matrix) : Animation(matrix) {
 	AddTheme(themeGuiltyGearTypeD);
 	AddTheme(themeGuiltyGearTypeE);
 	AddTheme(themeFightboard);
+	// Placeholder slot: Animate() substitutes the theme for the active input mode.
+	AddTheme(themeStaticRainbow);
+
+	// Auto theme: console face colors, warm yellow for d-pad, shoulders and aux buttons.
+	constexpr RGB ColorWarmYellow(255, 170, 40);
+	const std::map<uint32_t, RGB> autoThemeBase({
+		{ GAMEPAD_MASK_DU, ColorWarmYellow },
+		{ GAMEPAD_MASK_DD, ColorWarmYellow },
+		{ GAMEPAD_MASK_DL, ColorWarmYellow },
+		{ GAMEPAD_MASK_DR, ColorWarmYellow },
+		{ GAMEPAD_MASK_L1, ColorWarmYellow },
+		{ GAMEPAD_MASK_R1, ColorWarmYellow },
+		{ GAMEPAD_MASK_L2, ColorWarmYellow },
+		{ GAMEPAD_MASK_R2, ColorWarmYellow },
+		{ GAMEPAD_MASK_S1, ColorWarmYellow },
+		{ GAMEPAD_MASK_S2, ColorWarmYellow },
+		{ GAMEPAD_MASK_L3, ColorWarmYellow },
+		{ GAMEPAD_MASK_R3, ColorWarmYellow },
+		{ GAMEPAD_MASK_A1, ColorWarmYellow },
+		{ GAMEPAD_MASK_A2, ColorWarmYellow },
+	});
+	const auto withFaceColors = [&](RGB b1, RGB b2, RGB b3, RGB b4) {
+		std::map<uint32_t, RGB> theme = autoThemeBase;
+		theme[GAMEPAD_MASK_B1] = b1; // bottom
+		theme[GAMEPAD_MASK_B2] = b2; // right
+		theme[GAMEPAD_MASK_B3] = b3; // left
+		theme[GAMEPAD_MASK_B4] = b4; // top
+		return theme;
+	};
+	autoThemeXbox        = withFaceColors(ColorGreen,  ColorRed, ColorBlue,    ColorYellow); // A B X Y
+	autoThemePlayStation = withFaceColors(ColorBlue,   ColorRed, ColorMagenta, ColorGreen);  // Cross Circle Square Triangle
+	autoThemeNintendo    = withFaceColors(ColorYellow, ColorRed, ColorGreen,   ColorBlue);   // B A Y X (Super Famicom)
 
 	AnimationOptions & animationOptions = Storage::getInstance().getAnimationOptions();
 	if (animationOptions.themeIndex >= themes.size()) {
@@ -310,6 +343,10 @@ bool StaticTheme::Animate(RGB (&frame)[100]) {
     UpdateTime();
     UpdatePresses(frame);
 
+    const std::map<uint32_t, RGB>& theme = (animationOptions.themeIndex == STATIC_THEME_AUTO_INPUT_MODE)
+      ? ResolveAutoTheme()
+      : themes.at(animationOptions.themeIndex);
+
     for (size_t r = 0; r != matrix->pixels.size(); r++) {
       for (size_t c = 0; c != matrix->pixels[r].size(); c++) {
         if (matrix->pixels[r][c].index == NO_PIXEL.index)
@@ -317,8 +354,6 @@ bool StaticTheme::Animate(RGB (&frame)[100]) {
 
         // Count down the timer
         DecrementFadeCounter(matrix->pixels[r][c].index);
-
-        std::map<uint32_t, RGB> theme = themes.at(animationOptions.themeIndex);
 
         auto itr = theme.find(matrix->pixels[r][c].mask);
         if (itr != theme.end()) {
@@ -335,6 +370,27 @@ bool StaticTheme::Animate(RGB (&frame)[100]) {
     }
   }
   return true;
+}
+
+// Resolved per frame: addons are set up before DriverManager knows the input mode.
+const std::map<uint32_t, RGB>& StaticTheme::ResolveAutoTheme() const {
+  switch (DriverManager::getInstance().getInputMode()) {
+    case INPUT_MODE_XINPUT:
+    case INPUT_MODE_XBONE:
+    case INPUT_MODE_XBOXORIGINAL:
+      return autoThemeXbox;
+    case INPUT_MODE_PS3:
+    case INPUT_MODE_PS4:
+    case INPUT_MODE_PS5:
+    case INPUT_MODE_P5GENERAL:
+    case INPUT_MODE_PSCLASSIC:
+      return autoThemePlayStation;
+    case INPUT_MODE_SWITCH:
+    case INPUT_MODE_SWITCH_PRO:
+      return autoThemeNintendo;
+    default:
+      return themes.at(STATIC_THEME_RAINBOW);
+  }
 }
 
 void StaticTheme::ParameterUp() {

@@ -7,6 +7,16 @@ export default {
 		'leds-per-button-label': 'LEDs Per Button',
 		'led-brightness-maximum-label': 'Max Brightness',
 		'led-brightness-steps-label': 'Brightness Steps',
+		'led-effect-label': 'Button LED Effect',
+		'effect-static-color': 'Static Color',
+		'effect-rainbow': 'Rainbow',
+		'effect-chase': 'Chase',
+		'effect-static-theme': 'Static Theme',
+		'effect-custom-theme': 'Custom Theme',
+		'static-theme-label': 'Static Theme',
+		'static-theme-auto': 'Auto (by input mode)',
+		'static-theme-auto-description':
+			'Face buttons use Xbox, PlayStation or Nintendo colors depending on the active input mode; d-pad, shoulder and auxiliary buttons are warm yellow. Other input modes use the Static Rainbow theme. Changes apply after reboot.',
 	},
 	player: {
 		'header-text': 'Player LEDs',

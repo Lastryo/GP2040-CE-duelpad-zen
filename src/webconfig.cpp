@@ -8,6 +8,7 @@
 #include "display/ui/elements/GPTextRender.h"
 #include "peripheralmanager.h"
 #include "animationstorage.h"
+#include "animationstation.h"
 #include "system.h"
 #include "config_utils.h"
 #include "types.h"
@@ -845,6 +846,22 @@ std::string setLedOptions()
     readDoc(ledOptions.caseRGBIndex, doc, "caseRGBIndex");
     readDoc(ledOptions.caseRGBCount, doc, "caseRGBCount");
 
+    // Button LED effect and static theme are optional so older clients keep the current values.
+    AnimationOptions& animationOptions = Storage::getInstance().getAnimationOptions();
+    if (!doc["baseAnimationIndex"].isNull()) {
+        uint32_t baseAnimationIndex = doc["baseAnimationIndex"];
+        const uint32_t effectCount = TOTAL_EFFECTS + (animationOptions.hasCustomTheme ? 1 : 0);
+        if (baseAnimationIndex < effectCount) {
+            animationOptions.baseAnimationIndex = baseAnimationIndex;
+        }
+    }
+    if (!doc["themeIndex"].isNull()) {
+        uint32_t themeIndex = doc["themeIndex"];
+        if (themeIndex <= STATIC_THEME_AUTO_INPUT_MODE) {
+            animationOptions.themeIndex = themeIndex;
+        }
+    }
+
     EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
     return serialize_json(doc);
 }
@@ -861,6 +878,11 @@ std::string getLedOptions()
     writeDoc(doc, "brightnessMaximum", ledOptions.brightnessMaximum);
     writeDoc(doc, "brightnessSteps", ledOptions.brightnessSteps);
     writeDoc(doc, "turnOffWhenSuspended", ledOptions.turnOffWhenSuspended);
+
+    const AnimationOptions& animationOptions = Storage::getInstance().getAnimationOptions();
+    writeDoc(doc, "baseAnimationIndex", animationOptions.baseAnimationIndex);
+    writeDoc(doc, "themeIndex", animationOptions.themeIndex);
+    writeDoc(doc, "hasCustomTheme", animationOptions.hasCustomTheme);
 
     const auto writeIndex = [&](const char* key0, const char* key1, int var)
     {
