@@ -104,8 +104,8 @@
  #define LEDS_BUTTON_R2   8
  #define LEDS_BUTTON_B2   9
  #define LEDS_BUTTON_B1   10
- #define LEDS_BUTTON_R3   11
- #define LEDS_BUTTON_L3   12
+ #define LEDS_BUTTON_R3   12
+ #define LEDS_BUTTON_L3   11
  #define LEDS_DPAD_UP     13
  #define LEDS_BUTTON_A1   14
  #define LEDS_BUTTON_A2   15
