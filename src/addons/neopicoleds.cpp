@@ -546,6 +546,21 @@ void NeoPicoLEDAddon::process() {
         as.HandleEvent(action);
     }
 
+#ifdef LEDS_GPIO_PIXELS
+    // The board knows which LED sits under each switch: light the switches that are held.
+    static const struct { uint8_t pin; int8_t index; } gpioPixels[] = LEDS_GPIO_PIXELS;
+    const Mask_t heldGpio = Storage::getInstance().GetGamepad()->debouncedGpio;
+    vector<Pixel> pressed;
+    for (const auto& gpioPixel : gpioPixels)
+    {
+        if (!(heldGpio & (1UL << gpioPixel.pin)))
+            continue;
+        for (auto& row : matrix.pixels)
+            for (auto& pixel : row)
+                if (pixel.index == gpioPixel.index)
+                    pressed.push_back(pixel);
+    }
+#else
     // Light the directions that are physically held. state.dpad is cleared for the directions
     // that drive a stick in Left/Right Analog mode, so use the state before that conversion:
     // low nibble = mode directions, high nibble = digital-only directions.
@@ -560,6 +575,7 @@ void NeoPicoLEDAddon::process() {
                 pressed.push_back(pixel);
         }
     }
+#endif
     if (pressed.size() > 0)
         as.HandlePressed(pressed);
     else
