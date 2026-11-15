@@ -546,7 +546,11 @@ void NeoPicoLEDAddon::process() {
         as.HandleEvent(action);
     }
 
-    uint32_t buttonState = gamepad->state.dpad << 16 | gamepad->state.buttons;
+    // Light the directions that are physically held. state.dpad is cleared for the directions
+    // that drive a stick in Left/Right Analog mode, so use the state before that conversion:
+    // low nibble = mode directions, high nibble = digital-only directions.
+    uint8_t pressedDpad = (gamepad->state.dpadOriginal & 0x0F) | (gamepad->state.dpadOriginal >> 4);
+    uint32_t buttonState = pressedDpad << 16 | gamepad->state.buttons;
     vector<Pixel> pressed;
     for (auto row : matrix.pixels)
     {
