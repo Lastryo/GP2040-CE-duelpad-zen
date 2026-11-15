@@ -112,11 +112,12 @@
 
  // Physical LED under each switch: {GPIO, LED button index}. Pressed-button lighting follows the
  // switch that is held, whatever it is mapped to (d-pad mode modifier, macro, remapped buttons).
- // Checked on hardware: GP1 is LED 11, GP2 is LED 12, GP16 (factory Up) is LED 13 and GP7 (second Up)
- // is LED 15, the factory A2 position. GP3 (Macro 2) is not in the table yet.
+ // Checked on hardware: GP1 is LED 11, GP2 is LED 12, GP16 (factory Up) is LED 13, GP3 (Macro 2) is
+ // LED 14, the factory A1 position, and GP7 (second Up) is LED 15, the factory A2 position.
+ // GP4 (A1) has no LED.
  #define LEDS_GPIO_PIXELS { \
    {9, 0}, {10, 1}, {11, 2}, {18, 3}, {25, 4}, {27, 5}, {29, 6}, {28, 7}, \
-   {26, 8}, {24, 9}, {19, 10}, {1, 11}, {2, 12}, {16, 13}, {4, 14}, {7, 15} }
+   {26, 8}, {24, 9}, {19, 10}, {1, 11}, {2, 12}, {16, 13}, {3, 14}, {7, 15} }
 
  #define HAS_I2C_DISPLAY 1
  #define I2C0_ENABLED 1
